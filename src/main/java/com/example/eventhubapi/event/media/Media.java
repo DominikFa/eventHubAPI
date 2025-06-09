@@ -1,0 +1,48 @@
+package com.example.eventhubapi.event.media;
+
+import com.example.eventhubapi.event.Event;
+import com.example.eventhubapi.event.media.enums.MediaType;
+import com.example.eventhubapi.event.media.enums.MediaUsage;
+import com.example.eventhubapi.user.User;
+import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+import java.time.Instant;
+
+@Entity
+@Table(name = "media")
+@Getter
+@Setter
+@NoArgsConstructor
+public class Media {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "media_id")
+    private Long id;
+
+    @Lob
+    @Column(name = "media_file", nullable = false)
+    private byte[] mediaFile;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "media_type", nullable = false)
+    private MediaType mediaType;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private MediaUsage usage;
+
+    @Column(name = "uploaded_at", updatable = false, nullable = false)
+    private Instant uploadedAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "event_id", nullable = false)
+    private Event event;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "uploader_id", nullable = false)
+    private User uploader;
+}
