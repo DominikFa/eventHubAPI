@@ -34,7 +34,7 @@ public class MediaController {
      * @return DTO of the uploaded media.
      */
     @PostMapping
-    @PreAuthorize("hasAnyRole('EVENT_CREATOR', 'ADMIN')")
+    @PreAuthorize("hasAnyAuthority('organizer', 'admin')")
     public ResponseEntity<MediaDto> uploadMedia(
             @PathVariable Long eventId,
             @RequestParam("file") MultipartFile file,

@@ -25,7 +25,7 @@ public class Profile {
     private String name;
 
     @Lob
-    @Column(name = "profile_image")
+    @Column(name = "profile_image", columnDefinition = "bytea")
     private byte[] profileImage;
 
     @Column(columnDefinition = "TEXT")

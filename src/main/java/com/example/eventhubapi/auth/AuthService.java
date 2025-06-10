@@ -5,9 +5,12 @@ import com.example.eventhubapi.auth.dto.LoginRequest;
 import com.example.eventhubapi.auth.dto.RegistrationRequest;
 import com.example.eventhubapi.security.Role;
 import com.example.eventhubapi.security.RoleRepository;
+import com.example.eventhubapi.user.AccountStatus;
+import com.example.eventhubapi.user.AccountStatusRepository;
 import com.example.eventhubapi.user.User;
 import com.example.eventhubapi.user.UserRepository;
-import com.example.eventhubapi.auth.JwtService;
+import com.example.eventhubapi.user.dto.UserDto;
+import com.example.eventhubapi.user.mapper.UserMapper;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -27,17 +30,23 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
+    private final UserMapper userMapper;
+    private final AccountStatusRepository accountStatusRepository;
 
     public AuthService(UserRepository userRepository,
                        RoleRepository roleRepository,
                        PasswordEncoder passwordEncoder,
                        JwtService jwtService,
-                       AuthenticationManager authenticationManager) {
+                       AuthenticationManager authenticationManager,
+                       UserMapper userMapper,
+                       AccountStatusRepository accountStatusRepository) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.authenticationManager = authenticationManager;
+        this.userMapper = userMapper;
+        this.accountStatusRepository = accountStatusRepository;
     }
 
     /**
@@ -46,26 +55,28 @@ public class AuthService {
      * @param request DTO containing registration details.
      * @return The newly created User entity.
      */
-    public User register(RegistrationRequest request) {
-        if (userRepository.existsByEmail(request.getEmail())) {
-            throw new IllegalStateException("Email is already in use.");
+    public UserDto register(RegistrationRequest request) {
+        if (userRepository.existsByLogin(request.getLogin())) {
+            throw new IllegalStateException("Login is already in use.");
         }
 
         User newUser = new User();
-        newUser.setName(request.getName());
-        newUser.setEmail(request.getEmail());
+        newUser.setLogin(request.getLogin());
         newUser.setPassword(passwordEncoder.encode(request.getPassword()));
         newUser.setCreatedAt(Instant.now());
 
         // Assign the default USER role
-        Role userRole = roleRepository.findByName("ROLE_USER")
+        Role userRole = roleRepository.findByName("user")
                 .orElseThrow(() -> new IllegalStateException("Default role not found."));
         newUser.setRole(userRole);
 
-        // You can set a default status here if you have an AccountStatus entity/enum
-        // newUser.setStatus(AccountStatus.ACTIVE);
+        // Set default status to ACTIVE
+        AccountStatus activeStatus = accountStatusRepository.findByStatusName("active")
+                .orElseThrow(() -> new IllegalStateException("Default account status 'active' not found."));
+        newUser.setStatus(activeStatus);
 
-        return userRepository.save(newUser);
+        User savedUser = userRepository.save(newUser);
+        return userMapper.toUserDto(savedUser);
     }
 
     /**
@@ -77,16 +88,16 @@ public class AuthService {
     public AuthResponse login(LoginRequest request) {
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
-                        request.getEmail(),
+                        request.getLogin(),
                         request.getPassword()
                 )
         );
 
-        User user = userRepository.findByEmail(authentication.getName())
+        User user = userRepository.findByLogin(authentication.getName())
                 .orElseThrow(() -> new IllegalStateException("User not found after authentication."));
 
         String jwt = jwtService.generateToken(user);
 
-        return new AuthResponse(jwt, user);
+        return new AuthResponse(jwt, userMapper.toUserDto(user));
     }
 }

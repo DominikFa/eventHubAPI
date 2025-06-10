@@ -26,7 +26,10 @@ public class EventMapper {
 
         if (event.getOrganizer() != null) {
             User organizer = event.getOrganizer();
-            dto.setOrganizer(new UserSummary(organizer.getId(), organizer.getName(), organizer.getProfileImageUrl()));
+            String organizerName = organizer.getProfile() != null ? organizer.getProfile().getName() : null;
+            // The UserSummary expects a profile image URL, but the Profile entity stores a byte array.
+            // This is a larger design issue. For now, we pass null to fix compilation.
+            dto.setOrganizer(new UserSummary(organizer.getId(), organizerName, null));
         }
 
         // Location and participant count would be set here

@@ -26,7 +26,7 @@ public class NotificationMapper {
         if (notification == null) return null;
 
         NotificationDto dto = new NotificationDto();
-        dto.setId(accountNotification.getId());
+        dto.setId(accountNotification.getNotification().getId());
         dto.setStatus(accountNotification.getStatus().name());
 
         dto.setMessage(notification.getMessage());
@@ -40,10 +40,11 @@ public class NotificationMapper {
         }
 
         if (accountNotification.getRecipient() != null) {
+            String recipientName = accountNotification.getRecipient().getProfile() != null ? accountNotification.getRecipient().getProfile().getName() : null;
             dto.setRecipient(new UserSummary(
                     accountNotification.getRecipient().getId(),
-                    accountNotification.getRecipient().getName(),
-                    accountNotification.getRecipient().getProfileImageUrl()
+                    recipientName,
+                    null // Profile image URL is not available as a string
             ));
         }
 

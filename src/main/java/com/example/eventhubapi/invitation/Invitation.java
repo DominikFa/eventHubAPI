@@ -30,15 +30,11 @@ public class Invitation {
     private Event event;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "invited_user_id", nullable = false)
+    @JoinColumn(name = "account_id", nullable = false)
     private User invitedUser;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "inviting_user_id", nullable = false)
-    private User invitingUser;
-
     @Enumerated(EnumType.STRING)
-    @Column(length = 20, nullable = false)
+    @Column(name = "invitation_status", length = 30, nullable = false)
     private InvitationStatus status;
 
     @Column(name = "sent_at", updatable = false, nullable = false)

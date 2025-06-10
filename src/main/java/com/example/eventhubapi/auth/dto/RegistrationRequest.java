@@ -12,9 +12,9 @@ public class RegistrationRequest {
     @NotEmpty(message = "Name cannot be empty")
     private String name;
 
-    @NotEmpty(message = "Email cannot be empty")
-    @Email(message = "Email should be valid")
-    private String email;
+    @NotEmpty(message = "Login cannot be empty")
+    @Email(message = "Login should be a valid email")
+    private String login;
 
     @NotEmpty(message = "Password cannot be empty")
     @Size(min = 8, message = "Password must be at least 8 characters long")
@@ -29,12 +29,12 @@ public class RegistrationRequest {
         this.name = name;
     }
 
-    public String getEmail() {
-        return email;
+    public String getLogin() {
+        return login;
     }
 
-    public void setEmail(String email) {
-        this.email = email;
+    public void setLogin(String login) {
+        this.login = login;
     }
 
     public String getPassword() {

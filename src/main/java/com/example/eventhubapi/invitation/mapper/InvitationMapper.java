@@ -30,18 +30,13 @@ public class InvitationMapper {
         if (invitation.getInvitedUser() != null) {
             dto.setInvitedUser(new UserSummary(
                     invitation.getInvitedUser().getId(),
-                    invitation.getInvitedUser().getName(),
-                    invitation.getInvitedUser().getProfileImageUrl()
+                    invitation.getInvitedUser().getProfile() != null ? invitation.getInvitedUser().getProfile().getName() : null,
+                    null // profileImageUrl is not in Profile entity
             ));
         }
 
-        if (invitation.getInvitingUser() != null) {
-            dto.setInvitingUser(new UserSummary(
-                    invitation.getInvitingUser().getId(),
-                    invitation.getInvitingUser().getName(),
-                    invitation.getInvitingUser().getProfileImageUrl()
-            ));
-        }
+        // invitingUser is not available in the Invitation entity.
+        dto.setInvitingUser(null);
 
         return dto;
     }

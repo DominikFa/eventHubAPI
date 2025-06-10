@@ -35,36 +35,36 @@ public class InvitationService {
     }
 
     @Transactional
-    public InvitationDto createInvitation(InvitationCreateRequest request, String invitingUserEmail) {
-        User invitingUser = findUserByEmail(invitingUserEmail);
+    public InvitationDto createInvitation(InvitationCreateRequest request, String invitingUserLogin) {
+        User invitingUser = findUserByLogin(invitingUserLogin);
         User invitedUser = userRepository.findById(request.getInvitedUserId())
                 .orElseThrow(() -> new UserNotFoundException("Invited user not found with id: " + request.getInvitedUserId()));
         Event event = eventRepository.findById(request.getEventId())
                 .orElseThrow(() -> new EventNotFoundException("Event not found with id: " + request.getEventId()));
 
         Invitation invitation = new Invitation();
-        invitation.setInvitingUser(invitingUser);
         invitation.setInvitedUser(invitedUser);
         invitation.setEvent(event);
         invitation.setStatus(InvitationStatus.SENT);
         invitation.setSentAt(Instant.now());
 
         Invitation savedInvitation = invitationRepository.save(invitation);
+        // The inviting user is not persisted in the invitation, so it won't be in the DTO.
         return invitationMapper.toDto(savedInvitation);
     }
 
     @Transactional(readOnly = true)
-    public List<InvitationDto> getInvitationsForUser(String userEmail) {
-        User user = findUserByEmail(userEmail);
+    public List<InvitationDto> getInvitationsForUser(String userLogin) {
+        User user = findUserByLogin(userLogin);
         return invitationRepository.findByInvitedUserId(user.getId()).stream()
                 .map(invitationMapper::toDto)
                 .collect(Collectors.toList());
     }
 
     @Transactional
-    public InvitationDto acceptInvitation(Long invitationId, String userEmail) {
+    public InvitationDto acceptInvitation(Long invitationId, String userLogin) {
         Invitation invitation = findInvitationById(invitationId);
-        User user = findUserByEmail(userEmail);
+        User user = findUserByLogin(userLogin);
         validateUserIsInvited(invitation, user);
 
         invitation.setStatus(InvitationStatus.ACCEPTED);
@@ -78,9 +78,9 @@ public class InvitationService {
     }
 
     @Transactional
-    public InvitationDto declineInvitation(Long invitationId, String userEmail) {
+    public InvitationDto declineInvitation(Long invitationId, String userLogin) {
         Invitation invitation = findInvitationById(invitationId);
-        User user = findUserByEmail(userEmail);
+        User user = findUserByLogin(userLogin);
         validateUserIsInvited(invitation, user);
 
         invitation.setStatus(InvitationStatus.DECLINED);
@@ -90,9 +90,9 @@ public class InvitationService {
         return invitationMapper.toDto(savedInvitation);
     }
 
-    private User findUserByEmail(String email) {
-        return userRepository.findByEmail(email)
-                .orElseThrow(() -> new UserNotFoundException("User not found with email: " + email));
+    private User findUserByLogin(String login) {
+        return userRepository.findByLogin(login)
+                .orElseThrow(() -> new UserNotFoundException("User not found with login: " + login));
     }
 
     private Invitation findInvitationById(Long invitationId) {

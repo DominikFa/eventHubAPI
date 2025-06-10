@@ -36,12 +36,12 @@ public class MediaService {
     }
 
     @Transactional
-    public MediaDto store(MultipartFile file, Long eventId, String usageStr, String uploaderEmail) throws IOException {
+    public MediaDto store(MultipartFile file, Long eventId, String usageStr, String uploaderLogin) throws IOException {
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new EventNotFoundException("Event not found with id: " + eventId));
 
-        User uploader = userRepository.findByEmail(uploaderEmail)
-                .orElseThrow(() -> new UserNotFoundException("User not found with email: " + uploaderEmail));
+        User uploader = userRepository.findByLogin(uploaderLogin)
+                .orElseThrow(() -> new UserNotFoundException("User not found with login: " + uploaderLogin));
 
         Media media = new Media();
         media.setEvent(event);

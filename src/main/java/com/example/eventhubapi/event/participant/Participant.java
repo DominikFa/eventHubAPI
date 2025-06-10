@@ -8,31 +8,53 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.io.Serializable;
+import java.util.Objects;
+
 /**
  * Entity representing the participation of a User in an Event.
  * This acts as a join table with extra information.
  */
 @Entity
-@Table(name = "participant",
-        uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "event_id"}))
+@Table(name = "participant")
+@IdClass(Participant.ParticipantId.class)
 @Getter
 @Setter
 @NoArgsConstructor
 public class Participant {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
+    @JoinColumn(name = "account_id", nullable = false)
     private User user;
 
+    @Id
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "event_id", nullable = false)
     private Event event;
 
+    @Column(name = "status", nullable = false)
+    private String status;
+
     @Enumerated(EnumType.STRING)
-    @Column(name = "event_role", length = 20, nullable = false)
+    @Column(name = "event_role", length = 30, nullable = false)
     private EventRole eventRole;
+
+    public static class ParticipantId implements Serializable {
+        private Long user;
+        private Long event;
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            ParticipantId that = (ParticipantId) o;
+            return Objects.equals(user, that.user) && Objects.equals(event, that.event);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(user, event);
+        }
+    }
 }

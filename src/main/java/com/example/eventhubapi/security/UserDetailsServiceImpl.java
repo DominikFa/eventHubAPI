@@ -19,12 +19,12 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     }
 
     /**
-     * Locates the user based on the username (in this case, email).
+     * Locates the user based on the username (in this case, login).
      * The User entity itself implements UserDetails.
      */
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        return userRepository.findByEmail(username)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + username));
+        return userRepository.findByLogin(username)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found with login: " + username));
     }
 }

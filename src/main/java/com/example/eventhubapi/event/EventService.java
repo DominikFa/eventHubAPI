@@ -33,13 +33,13 @@ public class EventService {
      * Creates a new event.
      *
      * @param request DTO with event data.
-     * @param organizerEmail Email of the user creating the event.
+     * @param organizerLogin Login of the user creating the event.
      * @return DTO of the created event.
      */
     @Transactional
-    public EventDto createEvent(EventCreationRequest request, String organizerEmail) {
-        User organizer = userRepository.findByEmail(organizerEmail)
-                .orElseThrow(() -> new UserNotFoundException("Organizer not found with email: " + organizerEmail));
+    public EventDto createEvent(EventCreationRequest request, String organizerLogin) {
+        User organizer = userRepository.findByLogin(organizerLogin)
+                .orElseThrow(() -> new UserNotFoundException("Organizer not found with login: " + organizerLogin));
 
         Event newEvent = eventMapper.toEntity(request, organizer);
         Event savedEvent = eventRepository.save(newEvent);

@@ -19,7 +19,11 @@ public class Region {
     @Column(nullable = false)
     private String name;
 
+    @Column(nullable = false, unique = true, length = 10)
+    private String code;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "country_id", nullable = false)
     private Country country;
+
 }

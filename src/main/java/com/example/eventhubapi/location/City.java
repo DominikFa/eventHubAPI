@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import java.util.Set;
 
 @Entity
 @Table(name = "city")
@@ -22,4 +23,11 @@ public class City {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "region_id", nullable = false)
     private Region region;
+
+    @ManyToMany(cascade = { CascadeType.ALL })
+    @JoinTable(
+            name = "city_postal_code",
+            joinColumns = @JoinColumn(name = "city_id"),
+            inverseJoinColumns = @JoinColumn(name = "postal_code_id"))
+    private Set<PostalCode> postalCodes;
 }

@@ -24,7 +24,7 @@ public class Media {
     private Long id;
 
     @Lob
-    @Column(name = "media_file", nullable = false)
+    @Column(name = "media_file", nullable = false, columnDefinition = "bytea")
     private byte[] mediaFile;
 
     @Enumerated(EnumType.STRING)
@@ -43,6 +43,6 @@ public class Media {
     private Event event;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "uploader_id", nullable = false)
+    @JoinColumn(name = "account_id")
     private User uploader;
 }

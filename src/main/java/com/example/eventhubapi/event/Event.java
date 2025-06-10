@@ -46,7 +46,7 @@ public class Event {
     private Long maxParticipants;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "organizer_id", nullable = false)
+    @JoinColumn(name = "account_id", nullable = false)
     private User organizer;
 
     @OneToOne(cascade = CascadeType.ALL)

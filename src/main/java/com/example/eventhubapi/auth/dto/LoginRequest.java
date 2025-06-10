@@ -1,6 +1,5 @@
 package com.example.eventhubapi.auth.dto;
 
-import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotEmpty;
 
 /**
@@ -8,20 +7,19 @@ import jakarta.validation.constraints.NotEmpty;
  */
 public class LoginRequest {
 
-    @NotEmpty(message = "Email cannot be empty")
-    @Email(message = "Email should be valid")
-    private String email;
+    @NotEmpty(message = "Login cannot be empty")
+    private String login;
 
     @NotEmpty(message = "Password cannot be empty")
     private String password;
 
     // Getters and Setters
-    public String getEmail() {
-        return email;
+    public String getLogin() {
+        return login;
     }
 
-    public void setEmail(String email) {
-        this.email = email;
+    public void setLogin(String login) {
+        this.login = login;
     }
 
     public String getPassword() {

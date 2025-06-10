@@ -33,7 +33,7 @@ public class EventController {
      * @return The created event DTO.
      */
     @PostMapping
-    @PreAuthorize("hasAnyRole('ORGANIZER', 'ADMIN')")
+    @PreAuthorize("hasAnyAuthority('organizer', 'admin')")
     public ResponseEntity<EventDto> createEvent(@Valid @RequestBody EventCreationRequest request, Authentication authentication) {
         EventDto createdEvent = eventService.createEvent(request, authentication.getName());
         return new ResponseEntity<>(createdEvent, HttpStatus.CREATED);

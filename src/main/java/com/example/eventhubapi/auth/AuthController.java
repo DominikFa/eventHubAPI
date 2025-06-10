@@ -3,7 +3,8 @@ package com.example.eventhubapi.auth;
 import com.example.eventhubapi.auth.dto.AuthResponse;
 import com.example.eventhubapi.auth.dto.LoginRequest;
 import com.example.eventhubapi.auth.dto.RegistrationRequest;
-import com.example.eventhubapi.user.User;
+import com.example.eventhubapi.user.dto.UserDto;
+import com.example.eventhubapi.user.mapper.UserMapper;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,9 +21,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
 
     private final AuthService authService;
+    private final UserMapper userMapper;
 
-    public AuthController(AuthService authService) {
+    public AuthController(AuthService authService, UserMapper userMapper) {
         this.authService = authService;
+        this.userMapper = userMapper;
     }
 
     /**
@@ -44,9 +47,8 @@ public class AuthController {
      * @return ResponseEntity containing the newly created user's details.
      */
     @PostMapping("/register")
-    public ResponseEntity<User> register(@Valid @RequestBody RegistrationRequest registrationRequest) {
-        User registeredUser = authService.register(registrationRequest);
-        // Typically you would return a UserDTO here, but returning the User entity for now.
+    public ResponseEntity<UserDto> register(@Valid @RequestBody RegistrationRequest registrationRequest) {
+        UserDto registeredUser = authService.register(registrationRequest);
         return new ResponseEntity<>(registeredUser, HttpStatus.CREATED);
     }
 }

@@ -21,7 +21,7 @@ public class LocationController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ORGANIZER', 'ADMIN')")
+    @PreAuthorize("hasAnyAuthority('organizer', 'admin')")
     public ResponseEntity<LocationDto> createLocation(@Valid @RequestBody LocationCreationRequest request) {
         LocationDto createdLocation = locationService.createLocation(request);
         return new ResponseEntity<>(createdLocation, HttpStatus.CREATED);

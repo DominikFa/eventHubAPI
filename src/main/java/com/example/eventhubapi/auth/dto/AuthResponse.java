@@ -1,15 +1,15 @@
 package com.example.eventhubapi.auth.dto;
 
-import com.example.eventhubapi.user.User;
+import com.example.eventhubapi.user.dto.UserDto;
 
 /**
  * DTO for sending back an authentication response, including the JWT and user details.
  */
 public class AuthResponse {
     private String token;
-    private User user; // In a real app, this should be a UserDTO
+    private UserDto user; // In a real app, this should be a UserDTO
 
-    public AuthResponse(String token, User user) {
+    public AuthResponse(String token, UserDto user) {
         this.token = token;
         this.user = user;
     }
@@ -23,11 +23,11 @@ public class AuthResponse {
         this.token = token;
     }
 
-    public User getUser() {
+    public UserDto getUser() {
         return user;
     }
 
-    public void setUser(User user) {
+    public void setUser(UserDto user) {
         this.user = user;
     }
 }

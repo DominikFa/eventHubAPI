@@ -1,19 +1,31 @@
 package com.example.eventhubapi.location;
 
-import jakarta.persistence.Embeddable;
+import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * An embeddable class representing geographic coordinates.
- * This will be part of the Location entity and not have its own table.
+ * An entity class representing geographic coordinates.
  */
-@Embeddable
+@Entity
+@Table(name = "map_location")
 @Getter
 @Setter
 @NoArgsConstructor
 public class MapLocation {
+    @Id
+    @Column(name = "location_id")
+    private Long id;
+
+    @Column(columnDefinition = "numeric")
     private Double latitude;
+
+    @Column(columnDefinition = "numeric")
     private Double longitude;
+
+    @OneToOne(fetch = FetchType.LAZY)
+    @MapsId
+    @JoinColumn(name = "location_id")
+    private Location location;
 }

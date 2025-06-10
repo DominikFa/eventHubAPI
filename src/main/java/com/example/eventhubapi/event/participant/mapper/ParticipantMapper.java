@@ -11,14 +11,15 @@ public class ParticipantMapper {
         if (participant == null) return null;
 
         ParticipantDto dto = new ParticipantDto();
-        dto.setId(participant.getId());
+        dto.setId(participant.getUser().getId());
         dto.setEventRole(participant.getEventRole().name());
 
         if (participant.getUser() != null) {
+            String userName = participant.getUser().getProfile() != null ? participant.getUser().getProfile().getName() : null;
             dto.setUser(new UserSummary(
                     participant.getUser().getId(),
-                    participant.getUser().getName(),
-                    participant.getUser().getProfileImageUrl()
+                    userName,
+                    null // Profile image URL is not available as a string
             ));
         }
 

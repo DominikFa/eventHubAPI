@@ -14,10 +14,11 @@ import com.example.eventhubapi.location.exception.LocationNotFoundException;
 import com.example.eventhubapi.security.Role;
 import com.example.eventhubapi.security.RoleRepository;
 import com.example.eventhubapi.security.exception.RoleNotFoundException;
+import com.example.eventhubapi.user.AccountStatus;
+import com.example.eventhubapi.user.AccountStatusRepository;
 import com.example.eventhubapi.user.User;
 import com.example.eventhubapi.user.UserRepository;
 import com.example.eventhubapi.user.dto.UserDto;
-import com.example.eventhubapi.user.enums.AccountStatus;
 import com.example.eventhubapi.user.exception.UserNotFoundException;
 import com.example.eventhubapi.user.mapper.UserMapper;
 import org.springframework.stereotype.Service;
@@ -39,6 +40,7 @@ public class AdminService {
     private final LocationRepository locationRepository;
     private final UserMapper userMapper;
     private final EventMapper eventMapper;
+    private final AccountStatusRepository accountStatusRepository; // Dependency for the repository
 
     public AdminService(UserRepository userRepository,
                         EventRepository eventRepository,
@@ -46,7 +48,8 @@ public class AdminService {
                         RoleRepository roleRepository,
                         LocationRepository locationRepository,
                         UserMapper userMapper,
-                        EventMapper eventMapper) {
+                        EventMapper eventMapper,
+                        AccountStatusRepository accountStatusRepository) { // Inject the repository
         this.userRepository = userRepository;
         this.eventRepository = eventRepository;
         this.mediaRepository = mediaRepository;
@@ -54,6 +57,7 @@ public class AdminService {
         this.locationRepository = locationRepository;
         this.userMapper = userMapper;
         this.eventMapper = eventMapper;
+        this.accountStatusRepository = accountStatusRepository; // Assign it
     }
 
     @Transactional(readOnly = true)
@@ -64,9 +68,14 @@ public class AdminService {
     }
 
     @Transactional
-    public UserDto updateUserStatus(Long userId, AccountStatus newStatus) {
+    public UserDto updateUserStatus(Long userId, String newStatusName) {
         User user = findUserById(userId);
+
+        AccountStatus newStatus = accountStatusRepository.findByStatusName(newStatusName.toLowerCase())
+                .orElseThrow(() -> new IllegalArgumentException("Invalid status: " + newStatusName));
+
         user.setStatus(newStatus);
+
         return userMapper.toUserDto(userRepository.save(user));
     }
 

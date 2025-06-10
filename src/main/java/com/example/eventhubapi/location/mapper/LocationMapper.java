@@ -26,8 +26,10 @@ public class LocationMapper {
         if (location.getPostalCode() != null) {
             PostalCode pc = location.getPostalCode();
             dto.setPostalCode(pc.getCode());
-            if (pc.getCity() != null) {
-                City city = pc.getCity();
+            // Since a postal code can now belong to multiple cities,
+            // we will take the first city from the set for the DTO.
+            if (pc.getCities() != null && !pc.getCities().isEmpty()) {
+                City city = pc.getCities().iterator().next();
                 dto.setCity(city.getName());
                 if (city.getRegion() != null) {
                     Region region = city.getRegion();
@@ -55,11 +57,6 @@ public class LocationMapper {
             mapLocation.setLongitude(request.getLongitude());
             location.setMapLocation(mapLocation);
         }
-
-        // As noted in the service, here you would fetch the related entities.
-        // This is a placeholder for that logic.
-        // PostalCode pc = postalCodeService.findOrCreate(request.getPostalCode(), ...);
-        // location.setPostalCode(pc);
 
         return location;
     }

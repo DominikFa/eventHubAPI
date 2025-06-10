@@ -31,7 +31,7 @@ public class InvitationController {
      * @return The created invitation DTO.
      */
     @PostMapping
-    @PreAuthorize("hasAnyRole('ORGANIZER', 'ADMIN')")
+    @PreAuthorize("hasAnyAuthority('organizer', 'admin')")
     public ResponseEntity<InvitationDto> createInvitation(@Valid @RequestBody InvitationCreateRequest request, Authentication authentication) {
         InvitationDto createdInvitation = invitationService.createInvitation(request, authentication.getName());
         return new ResponseEntity<>(createdInvitation, HttpStatus.CREATED);

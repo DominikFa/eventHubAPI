@@ -28,7 +28,7 @@ public class Location {
 
     private String apartment;
 
-    @Embedded
+    @OneToOne(mappedBy = "location", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private MapLocation mapLocation;
 
     @ManyToOne(fetch = FetchType.LAZY)

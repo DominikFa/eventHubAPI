@@ -33,8 +33,8 @@ public class ParticipantService {
     }
 
     @Transactional
-    public ParticipantDto joinEvent(Long eventId, String userEmail) {
-        User user = findUserByEmail(userEmail);
+    public ParticipantDto joinEvent(Long eventId, String userLogin) {
+        User user = findUserByLogin(userLogin);
         Event event = findEventById(eventId);
 
         if (participantRepository.findByEventIdAndUserId(eventId, user.getId()).isPresent()) {
@@ -45,14 +45,15 @@ public class ParticipantService {
         participant.setUser(user);
         participant.setEvent(event);
         participant.setEventRole(EventRole.PARTICIPANT);
+        participant.setStatus("attending");
 
         Participant savedParticipant = participantRepository.save(participant);
         return participantMapper.toDto(savedParticipant);
     }
 
     @Transactional
-    public void leaveEvent(Long eventId, String userEmail) {
-        User user = findUserByEmail(userEmail);
+    public void leaveEvent(Long eventId, String userLogin) {
+        User user = findUserByLogin(userLogin);
         Participant participant = participantRepository.findByEventIdAndUserId(eventId, user.getId())
                 .orElseThrow(() -> new NotParticipantException("User is not a participant in this event."));
 
@@ -69,9 +70,9 @@ public class ParticipantService {
                 .collect(Collectors.toList());
     }
 
-    private User findUserByEmail(String email) {
-        return userRepository.findByEmail(email)
-                .orElseThrow(() -> new UserNotFoundException("User not found with email: " + email));
+    private User findUserByLogin(String login) {
+        return userRepository.findByLogin(login)
+                .orElseThrow(() -> new UserNotFoundException("User not found with login: " + login));
     }
 
     private Event findEventById(Long eventId) {

@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import java.util.Set;
 
 @Entity
 @Table(name = "postal_code")
@@ -19,7 +20,6 @@ public class PostalCode {
     @Column(unique = true, nullable = false)
     private String code;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "city_id", nullable = false)
-    private City city;
+    @ManyToMany(mappedBy = "postalCodes")
+    private Set<City> cities;
 }

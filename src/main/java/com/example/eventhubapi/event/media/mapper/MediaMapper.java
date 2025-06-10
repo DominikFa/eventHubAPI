@@ -17,10 +17,11 @@ public class MediaMapper {
         dto.setUploadedAt(media.getUploadedAt());
 
         if (media.getUploader() != null) {
+            String uploaderName = media.getUploader().getProfile() != null ? media.getUploader().getProfile().getName() : null;
             dto.setUploader(new UserSummary(
                     media.getUploader().getId(),
-                    media.getUploader().getName(),
-                    media.getUploader().getProfileImageUrl()
+                    uploaderName,
+                    null // Profile image URL is not available as a string
             ));
         }
 

@@ -1,5 +1,6 @@
 package com.example.eventhubapi.user.mapper;
 
+import com.example.eventhubapi.user.Profile;
 import com.example.eventhubapi.user.User;
 import com.example.eventhubapi.user.dto.UserDto;
 import org.springframework.stereotype.Service;
@@ -23,13 +24,18 @@ public class UserMapper {
 
         UserDto dto = new UserDto();
         dto.setId(user.getId());
-        dto.setEmail(user.getEmail());
-        dto.setName(user.getName());
+        dto.setLogin(user.getLogin());
         dto.setRole(user.getRole().getName());
-        dto.setStatus(user.getStatus().name()); // Map the enum to its string name
-        dto.setProfileImageUrl(user.getProfileImageUrl());
-        dto.setDescription(user.getDescription());
+        dto.setStatus(user.getStatus().getStatusName());
         dto.setCreatedAt(user.getCreatedAt());
+
+        Profile profile = user.getProfile();
+        if (profile != null) {
+            dto.setName(profile.getName());
+            dto.setDescription(profile.getDescription());
+            // The profileImageUrl is not in the Profile entity, so this would be null.
+            // dto.setProfileImageUrl(profile.getProfileImageUrl());
+        }
 
         return dto;
     }

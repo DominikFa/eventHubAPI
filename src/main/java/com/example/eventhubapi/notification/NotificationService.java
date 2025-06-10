@@ -54,8 +54,8 @@ public class NotificationService {
     }
 
     @Transactional(readOnly = true)
-    public List<NotificationDto> getNotificationsForUser(String userEmail) {
-        User user = findUserByEmail(userEmail);
+    public List<NotificationDto> getNotificationsForUser(String userLogin) {
+        User user = findUserByLogin(userLogin);
         List<AccountNotification> notifications = accountNotificationRepository.findByRecipientId(user.getId());
         return notifications.stream()
                 .map(notificationMapper::toDto)
@@ -63,9 +63,16 @@ public class NotificationService {
     }
 
     @Transactional
-    public NotificationDto markAsRead(Long accountNotificationId, String userEmail) {
-        AccountNotification notification = findAccountNotificationById(accountNotificationId);
-        User user = findUserByEmail(userEmail);
+    public NotificationDto markAsRead(Long notificationId, String userLogin) {
+        User user = findUserByLogin(userLogin);
+
+        AccountNotification.AccountNotificationId accountNotificationId = new AccountNotification.AccountNotificationId();
+        accountNotificationId.setRecipient(user.getId());
+        accountNotificationId.setNotification(notificationId);
+
+        AccountNotification notification = accountNotificationRepository.findById(accountNotificationId)
+                .orElseThrow(() -> new NotificationNotFoundException("Notification not found with id: " + notificationId));
+
         validateUserIsRecipient(notification, user);
 
         notification.setStatus(NotificationStatus.READ);
@@ -73,14 +80,9 @@ public class NotificationService {
         return notificationMapper.toDto(savedNotification);
     }
 
-    private User findUserByEmail(String email) {
-        return userRepository.findByEmail(email)
-                .orElseThrow(() -> new UserNotFoundException("User not found with email: " + email));
-    }
-
-    private AccountNotification findAccountNotificationById(Long id) {
-        return accountNotificationRepository.findById(id)
-                .orElseThrow(() -> new NotificationNotFoundException("Notification not found with id: " + id));
+    private User findUserByLogin(String login) {
+        return userRepository.findByLogin(login)
+                .orElseThrow(() -> new UserNotFoundException("User not found with login: " + login));
     }
 
     private void validateUserIsRecipient(AccountNotification notification, User user) {
