@@ -8,6 +8,8 @@ import com.example.eventhubapi.user.mapper.UserMapper;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+import java.io.IOException;
 
 /**
  * Service class for user-related business logic.
@@ -58,14 +60,6 @@ public class UserService {
         }
         profile.setName(request.getName());
         profile.setDescription(request.getDescription());
-        // Assuming profileImageUrl is a URL stored as a string. If it's a byte array for image data,
-        // you would handle it differently (e.g., profile.setProfileImage(request.getProfileImage()))
-        // The current Profile entity has byte[] profileImage, but UpdateProfileRequest has a String.
-        // This is a mismatch to be addressed. For now, assuming it's a URL and we add a field to Profile.
-        // Let's assume Profile should have a profileImageUrl String field instead of byte[].
-        // For the sake of this fix, I'll comment out the line causing a compile error.
-        // profile.setProfileImageUrl(request.getProfileImageUrl()); // This line needs the field in Profile entity.
-
         User updatedUser = userRepository.save(user);
         return userMapper.toUserDto(updatedUser);
     }
@@ -93,5 +87,23 @@ public class UserService {
 
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
         userRepository.save(user);
+    }
+
+    @Transactional
+    public void updateProfileImage(Long userId, MultipartFile file) throws IOException {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException("User not found with id: " + userId));
+
+        Profile profile = user.getProfile();
+        if (profile == null) {
+            profile = new Profile();
+            profile.setAccount(user);
+            user.setProfile(profile);
+        }
+
+
+        profile.setProfileImage(file.getBytes());
+
+        userRepository.save(user); // Saving the user will cascade and save the profile
     }
 }

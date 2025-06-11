@@ -4,14 +4,20 @@ import com.example.eventhubapi.common.dto.UserSummary;
 import com.example.eventhubapi.event.Event;
 import com.example.eventhubapi.event.dto.EventCreationRequest;
 import com.example.eventhubapi.event.dto.EventDto;
-import com.example.eventhubapi.location.Location;
-import com.example.eventhubapi.location.dto.LocationDto;
 import com.example.eventhubapi.user.User;
 import org.springframework.stereotype.Service;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+import com.example.eventhubapi.location.mapper.LocationMapper;
+
 
 @Service
 public class EventMapper {
 
+    private final LocationMapper locationMapper;
+
+    public EventMapper(LocationMapper locationMapper) {
+        this.locationMapper = locationMapper;
+    }
     public EventDto toDto(Event event) {
         if (event == null) return null;
 
@@ -27,14 +33,19 @@ public class EventMapper {
         if (event.getOrganizer() != null) {
             User organizer = event.getOrganizer();
             String organizerName = organizer.getProfile() != null ? organizer.getProfile().getName() : null;
-            // The UserSummary expects a profile image URL, but the Profile entity stores a byte array.
-            // This is a larger design issue. For now, we pass null to fix compilation.
-            dto.setOrganizer(new UserSummary(organizer.getId(), organizerName, null));
+            String imageUrl = null;
+            if (organizer.getProfile() != null && organizer.getProfile().getProfileImage() != null) {
+                imageUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
+                        .path("/api/users/").path(String.valueOf(organizer.getId())).path("/profile-image").toUriString();
+            }
+            dto.setOrganizer(new UserSummary(organizer.getId(), organizerName, imageUrl));
         }
 
-        // Location and participant count would be set here
-        // dto.setParticipantsCount(event.getParticipants().size());
-        // dto.setLocation(toLocationDto(event.getLocation()));
+        dto.setParticipantsCount(event.getParticipants().size());
+        if (event.getLocation() != null) {
+            dto.setLocation(locationMapper.toDto(event.getLocation()));
+        }
+
         return dto;
     }
 
@@ -50,13 +61,7 @@ public class EventMapper {
         event.setMaxParticipants(request.getMaxParticipants());
         event.setOrganizer(organizer);
 
-        if (request.getLocationId() != null) {
-            // In a real scenario, you'd fetch the Location entity from the database
-            // For now, we'll just create a placeholder
-            Location location = new Location();
-            location.setId(request.getLocationId());
-            event.setLocation(location);
-        }
+
         return event;
     }
 }

@@ -4,6 +4,7 @@ import com.example.eventhubapi.user.Profile;
 import com.example.eventhubapi.user.User;
 import com.example.eventhubapi.user.dto.UserDto;
 import org.springframework.stereotype.Service;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 /**
  * Mapper utility to convert between User entity and User DTOs.
@@ -33,8 +34,17 @@ public class UserMapper {
         if (profile != null) {
             dto.setName(profile.getName());
             dto.setDescription(profile.getDescription());
-            // The profileImageUrl is not in the Profile entity, so this would be null.
-            // dto.setProfileImageUrl(profile.getProfileImageUrl());
+
+            // If a profile image exists, generate the full, absolute URL for it.
+            if (profile.getProfileImage() != null && profile.getProfileImage().length > 0) {
+                String imageUrl = ServletUriComponentsBuilder
+                        .fromCurrentContextPath()
+                        .path("/api/users/")
+                        .path(String.valueOf(user.getId()))
+                        .path("/profile-image")
+                        .toUriString();
+                dto.setProfileImageUrl(imageUrl);
+            }
         }
 
         return dto;

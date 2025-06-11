@@ -1,5 +1,7 @@
 package com.example.eventhubapi.event.media.enums;
 
+import com.fasterxml.jackson.annotation.JsonValue;
+
 public enum MediaType {
     IMAGE_JPEG("image/jpeg"),
     IMAGE_PNG("image/png"),
@@ -11,13 +13,23 @@ public enum MediaType {
     VIDEO_OGG("video/ogg"),
     APPLICATION_PDF("application/pdf");
 
-    private final String type;
+    private final String value;
 
-    MediaType(String type) {
-        this.type = type;
+    MediaType(String value) {
+        this.value = value;
     }
 
-    public String getType() {
-        return type;
+    @JsonValue
+    public String getValue() {
+        return value;
+    }
+
+    public static MediaType fromValue(String text) {
+        for (MediaType b : MediaType.values()) {
+            if (String.valueOf(b.value).equalsIgnoreCase(text)) {
+                return b;
+            }
+        }
+        throw new IllegalArgumentException("Unexpected value '" + text + "'");
     }
 }

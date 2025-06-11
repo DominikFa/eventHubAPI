@@ -8,6 +8,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 
@@ -45,8 +47,8 @@ public class EventController {
      * @return A list of all event DTOs.
      */
     @GetMapping
-    public ResponseEntity<List<EventDto>> getAllEvents() {
-        List<EventDto> events = eventService.getAllEvents();
+    public ResponseEntity<Page<EventDto>> getAllEvents(Pageable pageable) {
+        Page<EventDto> events = eventService.getAllEvents(pageable);
         return ResponseEntity.ok(events);
     }
 
@@ -62,5 +64,4 @@ public class EventController {
         return ResponseEntity.ok(event);
     }
 
-    // Endpoints for participant management could be added here, e.g., POST /{eventId}/join
 }

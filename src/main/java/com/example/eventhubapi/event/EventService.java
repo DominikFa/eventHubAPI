@@ -9,6 +9,13 @@ import com.example.eventhubapi.user.UserRepository;
 import com.example.eventhubapi.user.exception.UserNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import com.example.eventhubapi.location.Location;
+import com.example.eventhubapi.location.LocationService;
+import com.example.eventhubapi.location.dto.LocationDto;
+import com.example.eventhubapi.location.LocationRepository;
+import com.example.eventhubapi.location.exception.LocationNotFoundException;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -22,11 +29,15 @@ public class EventService {
     private final EventRepository eventRepository;
     private final UserRepository userRepository;
     private final EventMapper eventMapper;
+    private final LocationService locationService;
+    private final LocationRepository locationRepository;
 
-    public EventService(EventRepository eventRepository, UserRepository userRepository, EventMapper eventMapper) {
+    public EventService(EventRepository eventRepository, UserRepository userRepository, EventMapper eventMapper, LocationService locationService, LocationRepository locationRepository) {
         this.eventRepository = eventRepository;
         this.userRepository = userRepository;
         this.eventMapper = eventMapper;
+        this.locationService = locationService;
+        this.locationRepository = locationRepository;
     }
 
     /**
@@ -42,6 +53,21 @@ public class EventService {
                 .orElseThrow(() -> new UserNotFoundException("Organizer not found with login: " + organizerLogin));
 
         Event newEvent = eventMapper.toEntity(request, organizer);
+
+
+        // Case 1: Link to an existing location by its ID
+        if (request.getLocationId() != null) {
+            Location existingLocation = locationRepository.findById(request.getLocationId())
+                    .orElseThrow(() -> new LocationNotFoundException("Location not found with id: " + request.getLocationId()));
+            newEvent.setLocation(existingLocation);
+        }
+        // Case 2: Create a new location from the nested object
+        else if (request.getLocation() != null) {
+            LocationDto createdLocationDto = locationService.createLocation(request.getLocation());
+            Location newLocation = locationRepository.findById(createdLocationDto.getId()).get();
+            newEvent.setLocation(newLocation);
+        }
+
         Event savedEvent = eventRepository.save(newEvent);
 
         return eventMapper.toDto(savedEvent);
@@ -53,10 +79,11 @@ public class EventService {
      * @return A list of event DTOs.
      */
     @Transactional(readOnly = true)
-    public List<EventDto> getAllEvents() {
-        return eventRepository.findAll().stream()
-                .map(eventMapper::toDto)
-                .collect(Collectors.toList());
+    public Page<EventDto> getAllEvents(Pageable pageable) {
+        // The repository call now returns a Page<Event>
+        Page<Event> eventPage = eventRepository.findAll(pageable);
+        // The map function on Page converts its content from Event to EventDto
+        return eventPage.map(eventMapper::toDto);
     }
 
     /**

@@ -7,6 +7,8 @@ import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+import java.io.IOException;
 
 /**
  * REST controller for user-related operations, such as retrieving and updating profiles.
@@ -60,5 +62,12 @@ public class UserController {
         User currentUser = (User) authentication.getPrincipal();
         userService.changePassword(currentUser.getId(), request);
         return ResponseEntity.ok("Password changed successfully.");
+    }
+
+    @PutMapping("/me/profile-image")
+    public ResponseEntity<String> uploadProfileImage(Authentication authentication, @RequestParam("file") MultipartFile file) throws IOException {
+        User currentUser = (User) authentication.getPrincipal();
+        userService.updateProfileImage(currentUser.getId(), file);
+        return ResponseEntity.ok("Profile image updated successfully.");
     }
 }

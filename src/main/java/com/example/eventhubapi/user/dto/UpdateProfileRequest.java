@@ -15,5 +15,4 @@ public class UpdateProfileRequest {
     private String name;
 
     private String description;
-    private String profileImageUrl;
 }

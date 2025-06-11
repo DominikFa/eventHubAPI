@@ -36,7 +36,7 @@ public class Participant {
     @Column(name = "status", nullable = false)
     private String status;
 
-    @Enumerated(EnumType.STRING)
+
     @Column(name = "event_role", length = 30, nullable = false)
     private EventRole eventRole;
 

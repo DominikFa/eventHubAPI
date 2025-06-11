@@ -1,21 +1,21 @@
 package com.example.eventhubapi.event.media;
 
 import com.example.eventhubapi.event.media.dto.MediaDto;
+import com.example.eventhubapi.event.media.enums.MediaUsage;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.util.List;
 
 @RestController
-@RequestMapping("/api/events/{eventId}/media")
+@RequestMapping("/api/events/{eventId}")
 public class MediaController {
 
     private final MediaService mediaService;
@@ -24,53 +24,57 @@ public class MediaController {
         this.mediaService = mediaService;
     }
 
-    /**
-     * Uploads media for a specific event.
-     *
-     * @param eventId The ID of the event.
-     * @param file The media file to upload.
-     * @param usage The intended usage of the media (e.g., GALLERY, LOGO).
-     * @param authentication The current user's authentication details.
-     * @return DTO of the uploaded media.
-     */
-    @PostMapping
-    @PreAuthorize("hasAnyAuthority('organizer', 'admin')")
-    public ResponseEntity<MediaDto> uploadMedia(
-            @PathVariable Long eventId,
-            @RequestParam("file") MultipartFile file,
-            @RequestParam("usage") String usage,
-            Authentication authentication) throws IOException {
-
-        MediaDto mediaDto = mediaService.store(file, eventId, usage, authentication.getName());
+    // --- GALLERY ENDPOINTS ---
+    @PostMapping("/gallery")
+    public ResponseEntity<MediaDto> uploadGalleryImage(@PathVariable Long eventId, @RequestParam("file") MultipartFile file, Authentication authentication) throws IOException {
+        MediaDto mediaDto = mediaService.addGalleryImage(eventId, file, authentication);
         return new ResponseEntity<>(mediaDto, HttpStatus.CREATED);
     }
 
-    /**
-     * Retrieves metadata for all media associated with a specific event.
-     *
-     * @param eventId The ID of the event.
-     * @return A list of media DTOs (without the file data).
-     */
-    @GetMapping
-    public ResponseEntity<List<MediaDto>> getMediaForEvent(@PathVariable Long eventId) {
-        List<MediaDto> mediaList = mediaService.getMediaForEvent(eventId);
-        return ResponseEntity.ok(mediaList);
+    @DeleteMapping("/gallery/{mediaId}")
+    public ResponseEntity<Void> deleteGalleryImage(@PathVariable Long eventId, @PathVariable Long mediaId, Authentication authentication) {
+        mediaService.deleteGalleryImage(eventId, mediaId, authentication);
+        return ResponseEntity.noContent().build();
     }
 
-    /**
-     * Downloads a specific media file by its ID.
-     *
-     * @param eventId The ID of the event (used for URL consistency).
-     * @param mediaId The ID of the media file to download.
-     * @return The media file as a downloadable resource.
-     */
-    @GetMapping("/{mediaId}")
+    // --- LOGO ENDPOINTS ---
+    @PostMapping("/logo")
+    public ResponseEntity<MediaDto> uploadEventLogo(@PathVariable Long eventId, @RequestParam("file") MultipartFile file, Authentication authentication) throws IOException {
+        MediaDto mediaDto = mediaService.uploadEventLogo(eventId, file, authentication);
+        return new ResponseEntity<>(mediaDto, HttpStatus.CREATED);
+    }
+
+    @DeleteMapping("/logo")
+    public ResponseEntity<Void> deleteEventLogo(@PathVariable Long eventId, Authentication authentication) {
+        mediaService.deleteRestrictedMedia(eventId, MediaUsage.LOGO, authentication);
+        return ResponseEntity.noContent().build();
+    }
+
+    // --- SCHEDULE ENDPOINTS ---
+    @PostMapping("/schedule")
+    public ResponseEntity<MediaDto> uploadEventSchedule(@PathVariable Long eventId, @RequestParam("file") MultipartFile file, Authentication authentication) throws IOException {
+        MediaDto mediaDto = mediaService.uploadEventSchedule(eventId, file, authentication);
+        return new ResponseEntity<>(mediaDto, HttpStatus.CREATED);
+    }
+
+    @DeleteMapping("/schedule")
+    public ResponseEntity<Void> deleteEventSchedule(@PathVariable Long eventId, Authentication authentication) {
+        mediaService.deleteRestrictedMedia(eventId, MediaUsage.SCHEDULE, authentication);
+        return ResponseEntity.noContent().build();
+    }
+
+    // --- GENERIC MEDIA DOWNLOAD ---
+    @GetMapping("/media/{mediaId}")
     public ResponseEntity<Resource> downloadMedia(@PathVariable Long eventId, @PathVariable Long mediaId) {
         Media media = mediaService.getMediaFile(mediaId);
 
+        if (!media.getEvent().getId().equals(eventId)) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
+
         return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"media_" + media.getId() + "\"")
-                .contentType(org.springframework.http.MediaType.valueOf(media.getMediaType().name().replace("_", "/")))
+                .contentType(MediaType.parseMediaType(media.getMediaType().getValue()))
+                .header(HttpHeaders.CONTENT_DISPOSITION, "inline")
                 .body(new ByteArrayResource(media.getMediaFile()));
     }
 }
