@@ -11,13 +11,13 @@ import com.example.eventhubapi.invitation.mapper.InvitationMapper;
 import com.example.eventhubapi.user.User;
 import com.example.eventhubapi.user.UserRepository;
 import com.example.eventhubapi.user.exception.UserNotFoundException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
-import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 public class InvitationService {
@@ -34,6 +34,15 @@ public class InvitationService {
         this.invitationMapper = invitationMapper;
     }
 
+    private void authorizeOrganizerOrAdmin(Event event, User user) {
+        boolean isOrganizer = event.getOrganizer().getId().equals(user.getId());
+        boolean isAdmin = user.getAuthorities().stream()
+                .anyMatch(grantedAuthority -> grantedAuthority.getAuthority().equals("admin"));
+        if (!isOrganizer && !isAdmin) {
+            throw new AccessDeniedException("You must be the event organizer or an admin to perform this action.");
+        }
+    }
+
     @Transactional
     public InvitationDto createInvitation(InvitationCreateRequest request, String invitingUserLogin) {
         User invitingUser = findUserByLogin(invitingUserLogin);
@@ -42,6 +51,8 @@ public class InvitationService {
         Event event = eventRepository.findById(request.getEventId())
                 .orElseThrow(() -> new EventNotFoundException("Event not found with id: " + request.getEventId()));
 
+        authorizeOrganizerOrAdmin(event, invitingUser);
+
         Invitation invitation = new Invitation();
         invitation.setInvitedUser(invitedUser);
         invitation.setEvent(event);
@@ -49,16 +60,32 @@ public class InvitationService {
         invitation.setSentAt(Instant.now());
 
         Invitation savedInvitation = invitationRepository.save(invitation);
-        // The inviting user is not persisted in the invitation, so it won't be in the DTO.
+        return invitationMapper.toDto(savedInvitation);
+    }
+
+    @Transactional
+    public InvitationDto revokeInvitation(Long invitationId, String userLogin) {
+        User user = findUserByLogin(userLogin);
+        Invitation invitation = findInvitationById(invitationId);
+
+        authorizeOrganizerOrAdmin(invitation.getEvent(), user);
+
+        if(invitation.getStatus() != InvitationStatus.SENT) {
+            throw new IllegalStateException("Only sent invitations can be revoked.");
+        }
+
+        invitation.setStatus(InvitationStatus.REVOKED);
+        invitation.setRespondedAt(Instant.now());
+
+        Invitation savedInvitation = invitationRepository.save(invitation);
         return invitationMapper.toDto(savedInvitation);
     }
 
     @Transactional(readOnly = true)
-    public List<InvitationDto> getInvitationsForUser(String userLogin) {
+    public Page<InvitationDto> getInvitationsForUser(String userLogin, Pageable pageable) {
         User user = findUserByLogin(userLogin);
-        return invitationRepository.findByInvitedUserId(user.getId()).stream()
-                .map(invitationMapper::toDto)
-                .collect(Collectors.toList());
+        return invitationRepository.findByInvitedUserId(user.getId(), pageable)
+                .map(invitationMapper::toDto);
     }
 
     @Transactional
@@ -69,9 +96,6 @@ public class InvitationService {
 
         invitation.setStatus(InvitationStatus.ACCEPTED);
         invitation.setRespondedAt(Instant.now());
-
-        // Here you would also add the user to the event's participant list
-        // eventService.addParticipant(invitation.getEvent().getId(), user.getId());
 
         Invitation savedInvitation = invitationRepository.save(invitation);
         return invitationMapper.toDto(savedInvitation);

@@ -10,6 +10,8 @@ import com.example.eventhubapi.event.media.MediaRepository;
 import com.example.eventhubapi.event.media.exception.MediaNotFoundException;
 import com.example.eventhubapi.location.Location;
 import com.example.eventhubapi.location.LocationRepository;
+import com.example.eventhubapi.location.LocationService;
+import com.example.eventhubapi.location.dto.LocationDto;
 import com.example.eventhubapi.location.exception.LocationNotFoundException;
 import com.example.eventhubapi.security.Role;
 import com.example.eventhubapi.security.RoleRepository;
@@ -23,6 +25,8 @@ import com.example.eventhubapi.user.exception.UserNotFoundException;
 import com.example.eventhubapi.user.mapper.UserMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -40,7 +44,8 @@ public class AdminService {
     private final LocationRepository locationRepository;
     private final UserMapper userMapper;
     private final EventMapper eventMapper;
-    private final AccountStatusRepository accountStatusRepository; // Dependency for the repository
+    private final AccountStatusRepository accountStatusRepository;
+    private final LocationService locationService;
 
     public AdminService(UserRepository userRepository,
                         EventRepository eventRepository,
@@ -49,7 +54,8 @@ public class AdminService {
                         LocationRepository locationRepository,
                         UserMapper userMapper,
                         EventMapper eventMapper,
-                        AccountStatusRepository accountStatusRepository) { // Inject the repository
+                        AccountStatusRepository accountStatusRepository,
+                        LocationService locationService) {
         this.userRepository = userRepository;
         this.eventRepository = eventRepository;
         this.mediaRepository = mediaRepository;
@@ -57,14 +63,14 @@ public class AdminService {
         this.locationRepository = locationRepository;
         this.userMapper = userMapper;
         this.eventMapper = eventMapper;
-        this.accountStatusRepository = accountStatusRepository; // Assign it
+        this.accountStatusRepository = accountStatusRepository;
+        this.locationService = locationService;
     }
 
     @Transactional(readOnly = true)
-    public List<UserDto> getAllUsers() {
-        return userRepository.findAll().stream()
-                .map(userMapper::toUserDto)
-                .collect(Collectors.toList());
+    public Page<UserDto> getAllUsers(Pageable pageable) {
+        return userRepository.findAll(pageable)
+                .map(userMapper::toUserDto);
     }
 
     @Transactional
@@ -89,6 +95,14 @@ public class AdminService {
     }
 
     @Transactional
+    public void deleteUser(Long userId) {
+        if (!userRepository.existsById(userId)) {
+            throw new UserNotFoundException("User not found with id: " + userId);
+        }
+        userRepository.deleteById(userId);
+    }
+
+    @Transactional
     public EventDto updateAnyEvent(Long eventId, AdminEventUpdateRequest request) {
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new EventNotFoundException("Event not found with id: " + eventId));
@@ -97,14 +111,20 @@ public class AdminService {
         event.setDescription(request.getDescription());
         event.setStartDate(request.getStartDate());
         event.setEndDate(request.getEndDate());
-        event.setPublic(request.isPublic());
+        event.setPublic(request.getIsPublic());
         event.setMaxParticipants(request.getMaxParticipants());
 
         if (request.getLocationId() != null) {
             Location location = locationRepository.findById(request.getLocationId())
                     .orElseThrow(() -> new LocationNotFoundException("Location not found with id: " + request.getLocationId()));
             event.setLocation(location);
+        } else if (request.getLocation() != null) {
+            LocationDto createdLocationDto = locationService.createLocation(request.getLocation());
+            Location newLocation = locationRepository.findById(createdLocationDto.getId())
+                    .orElseThrow(() -> new LocationNotFoundException("Could not find newly created location with id: " + createdLocationDto.getId()));
+            event.setLocation(newLocation);
         }
+
 
         return eventMapper.toDto(eventRepository.save(event));
     }

@@ -11,11 +11,12 @@ import com.example.eventhubapi.event.participant.mapper.ParticipantMapper;
 import com.example.eventhubapi.user.User;
 import com.example.eventhubapi.user.UserRepository;
 import com.example.eventhubapi.user.exception.UserNotFoundException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Map;
 
 @Service
 public class ParticipantService {
@@ -57,17 +58,33 @@ public class ParticipantService {
         Participant participant = participantRepository.findByEventIdAndUserId(eventId, user.getId())
                 .orElseThrow(() -> new NotParticipantException("User is not a participant in this event."));
 
+        if (participant.getEventRole() == EventRole.ORGANIZER) {
+            throw new IllegalStateException("The organizer cannot leave the event.");
+        }
+
         participantRepository.delete(participant);
     }
 
     @Transactional(readOnly = true)
-    public List<ParticipantDto> getParticipantsForEvent(Long eventId) {
+    public Page<ParticipantDto> getParticipantsForEvent(Long eventId, Pageable pageable) {
         if (!eventRepository.existsById(eventId)) {
             throw new EventNotFoundException("Event not found with id: " + eventId);
         }
-        return participantRepository.findByEventId(eventId).stream()
-                .map(participantMapper::toDto)
-                .collect(Collectors.toList());
+        return participantRepository.findByEventId(eventId, pageable)
+                .map(participantMapper::toDto);
+    }
+
+    @Transactional(readOnly = true)
+    public Map<String, String> getParticipantStatus(Long eventId, String userLogin) {
+        User user = findUserByLogin(userLogin);
+        findEventById(eventId); // Ensures event exists
+
+        // This is a simplified implementation. A real implementation would check for invitations, bans, etc.
+        String status = participantRepository.findByEventIdAndUserId(eventId, user.getId())
+                .map(p -> "participant")
+                .orElse("not_participant");
+
+        return Map.of("status", status);
     }
 
     private User findUserByLogin(String login) {

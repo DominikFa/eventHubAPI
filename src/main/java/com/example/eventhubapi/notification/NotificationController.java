@@ -1,15 +1,15 @@
 package com.example.eventhubapi.notification;
 
 import com.example.eventhubapi.notification.dto.NotificationDto;
+import com.example.eventhubapi.notification.enums.NotificationStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+import java.util.Map;
 
-/**
- * REST controller for users to manage their notifications.
- */
 @RestController
 @RequestMapping("/api/notifications")
 public class NotificationController {
@@ -20,26 +20,16 @@ public class NotificationController {
         this.notificationService = notificationService;
     }
 
-    /**
-     * Retrieves all notifications for the currently authenticated user.
-     * @param authentication The current user.
-     * @return A list of notification DTOs.
-     */
     @GetMapping
-    public ResponseEntity<List<NotificationDto>> getMyNotifications(Authentication authentication) {
-        List<NotificationDto> notifications = notificationService.getNotificationsForUser(authentication.getName());
+    public ResponseEntity<Page<NotificationDto>> getMyNotifications(Authentication authentication, Pageable pageable) {
+        Page<NotificationDto> notifications = notificationService.getNotificationsForUser(authentication.getName(), pageable);
         return ResponseEntity.ok(notifications);
     }
 
-    /**
-     * Marks a specific notification as read.
-     * @param notificationId The ID of the AccountNotification to mark as read.
-     * @param authentication The current user.
-     * @return The updated notification DTO.
-     */
-    @PostMapping("/{notificationId}/read")
-    public ResponseEntity<NotificationDto> markAsRead(@PathVariable Long notificationId, Authentication authentication) {
-        NotificationDto notification = notificationService.markAsRead(notificationId, authentication.getName());
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<NotificationDto> updateNotificationStatus(@PathVariable Long id, @RequestBody Map<String, String> payload, Authentication authentication) {
+        String status = payload.get("status");
+        NotificationDto notification = notificationService.updateStatus(id, NotificationStatus.valueOf(status.toUpperCase()), authentication.getName());
         return ResponseEntity.ok(notification);
     }
 }

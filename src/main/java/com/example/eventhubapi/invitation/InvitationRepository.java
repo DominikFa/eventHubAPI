@@ -1,5 +1,7 @@
 package com.example.eventhubapi.invitation;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -15,5 +17,5 @@ public interface InvitationRepository extends JpaRepository<Invitation, Long> {
      * @param userId The ID of the invited user.
      * @return A list of invitations.
      */
-    List<Invitation> findByInvitedUserId(Long userId);
+    Page<Invitation> findByInvitedUserId(Long userId, Pageable pageable);
 }

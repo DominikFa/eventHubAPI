@@ -23,15 +23,15 @@ public class Media {
     @Column(name = "media_id")
     private Long id;
 
-    @Lob
+
     @Column(name = "media_file", nullable = false, columnDefinition = "bytea")
     private byte[] mediaFile;
 
-    @Enumerated(EnumType.STRING)
+
     @Column(name = "media_type", nullable = false)
     private MediaType mediaType;
 
-    @Enumerated(EnumType.STRING)
+
     @Column(nullable = false)
     private MediaUsage usage;
 

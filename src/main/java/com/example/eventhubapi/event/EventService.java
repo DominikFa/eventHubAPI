@@ -7,6 +7,7 @@ import com.example.eventhubapi.event.mapper.EventMapper;
 import com.example.eventhubapi.user.User;
 import com.example.eventhubapi.user.UserRepository;
 import com.example.eventhubapi.user.exception.UserNotFoundException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.Page;
@@ -16,9 +17,6 @@ import com.example.eventhubapi.location.LocationService;
 import com.example.eventhubapi.location.dto.LocationDto;
 import com.example.eventhubapi.location.LocationRepository;
 import com.example.eventhubapi.location.exception.LocationNotFoundException;
-
-import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Service class for event-related business logic.
@@ -40,13 +38,15 @@ public class EventService {
         this.locationRepository = locationRepository;
     }
 
-    /**
-     * Creates a new event.
-     *
-     * @param request DTO with event data.
-     * @param organizerLogin Login of the user creating the event.
-     * @return DTO of the created event.
-     */
+    private void authorizeOrganizerOrAdmin(Event event, User user) {
+        boolean isOrganizer = event.getOrganizer().getId().equals(user.getId());
+        boolean isAdmin = user.getAuthorities().stream()
+                .anyMatch(grantedAuthority -> grantedAuthority.getAuthority().equals("admin"));
+        if (!isOrganizer && !isAdmin) {
+            throw new AccessDeniedException("You must be the event organizer or an admin to perform this action.");
+        }
+    }
+
     @Transactional
     public EventDto createEvent(EventCreationRequest request, String organizerLogin) {
         User organizer = userRepository.findByLogin(organizerLogin)
@@ -54,48 +54,62 @@ public class EventService {
 
         Event newEvent = eventMapper.toEntity(request, organizer);
 
-
-        // Case 1: Link to an existing location by its ID
         if (request.getLocationId() != null) {
             Location existingLocation = locationRepository.findById(request.getLocationId())
                     .orElseThrow(() -> new LocationNotFoundException("Location not found with id: " + request.getLocationId()));
             newEvent.setLocation(existingLocation);
-        }
-        // Case 2: Create a new location from the nested object
-        else if (request.getLocation() != null) {
+        } else if (request.getLocation() != null) {
             LocationDto createdLocationDto = locationService.createLocation(request.getLocation());
-            Location newLocation = locationRepository.findById(createdLocationDto.getId()).get();
+            Location newLocation = locationRepository.findById(createdLocationDto.getId()).orElseThrow();
             newEvent.setLocation(newLocation);
         }
 
         Event savedEvent = eventRepository.save(newEvent);
-
         return eventMapper.toDto(savedEvent);
     }
 
-    /**
-     * Retrieves all events.
-     *
-     * @return A list of event DTOs.
-     */
+    @Transactional(readOnly = true)
+    public Page<EventDto> getPublicEvents(Pageable pageable) {
+        return eventRepository.findPublicEvents(pageable).map(eventMapper::toDto);
+    }
+
     @Transactional(readOnly = true)
     public Page<EventDto> getAllEvents(Pageable pageable) {
-        // The repository call now returns a Page<Event>
         Page<Event> eventPage = eventRepository.findAll(pageable);
-        // The map function on Page converts its content from Event to EventDto
         return eventPage.map(eventMapper::toDto);
     }
 
-    /**
-     * Retrieves a single event by its ID.
-     *
-     * @param eventId The ID of the event.
-     * @return The event DTO.
-     */
     @Transactional(readOnly = true)
     public EventDto getEventById(Long eventId) {
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new EventNotFoundException("Event not found with id: " + eventId));
         return eventMapper.toDto(event);
+    }
+
+    @Transactional
+    public EventDto updateEvent(Long eventId, EventCreationRequest request, String userLogin) {
+        User user = userRepository.findByLogin(userLogin)
+                .orElseThrow(() -> new UserNotFoundException("User not found with login: " + userLogin));
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new EventNotFoundException("Event not found with id: " + eventId));
+
+        authorizeOrganizerOrAdmin(event, user);
+
+        Event updatedEvent = eventMapper.toEntity(request, event.getOrganizer()); // Use original organizer
+        updatedEvent.setId(eventId); // Ensure we are updating the correct event
+
+        Event savedEvent = eventRepository.save(updatedEvent);
+        return eventMapper.toDto(savedEvent);
+    }
+
+    @Transactional
+    public void deleteEvent(Long eventId, String userLogin) {
+        User user = userRepository.findByLogin(userLogin)
+                .orElseThrow(() -> new UserNotFoundException("User not found with login: " + userLogin));
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new EventNotFoundException("Event not found with id: " + eventId));
+
+        authorizeOrganizerOrAdmin(event, user);
+        eventRepository.deleteById(eventId);
     }
 }

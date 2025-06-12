@@ -24,7 +24,6 @@ public class Profile {
     @Column(length = 50)
     private String name;
 
-    @Lob
     @Column(name = "profile_image", columnDefinition = "bytea")
     private byte[] profileImage;
 

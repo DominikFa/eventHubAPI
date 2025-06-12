@@ -7,6 +7,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 
@@ -28,8 +30,9 @@ public class LocationController {
     }
 
     @GetMapping
-    public ResponseEntity<List<LocationDto>> getAllLocations() {
-        List<LocationDto> locations = locationService.getAllLocations();
+    @PreAuthorize("hasAnyAuthority('organizer', 'admin')")
+    public ResponseEntity<Page<LocationDto>> getAllLocations(Pageable pageable) {
+        Page<LocationDto> locations = locationService.getAllLocations(pageable);
         return ResponseEntity.ok(locations);
     }
 

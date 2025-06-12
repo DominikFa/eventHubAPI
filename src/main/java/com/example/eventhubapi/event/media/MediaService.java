@@ -18,6 +18,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.time.Instant;
+import java.util.Objects;
 
 @Service
 public class MediaService {
@@ -34,90 +35,122 @@ public class MediaService {
         this.mediaMapper = mediaMapper;
     }
 
-    // --- GALLERY LOGIC ---
-    @Transactional
-    public MediaDto addGalleryImage(Long eventId, MultipartFile file, Authentication authentication) throws IOException {
-        User currentUser = (User) authentication.getPrincipal();
-        Event event = eventRepository.findById(eventId)
-                .orElseThrow(() -> new EventNotFoundException("Event not found with id: " + eventId));
+    private void authorizeOrganizerOrAdmin(Event event, User user) {
+        boolean isOrganizer = event.getOrganizer().getId().equals(user.getId());
+        boolean isAdmin = user.getAuthorities().stream()
+                .anyMatch(grantedAuthority -> grantedAuthority.getAuthority().equals("admin"));
+        if (!isOrganizer && !isAdmin) {
+            throw new AccessDeniedException("You must be the event organizer or an admin to perform this action.");
+        }
+    }
 
-        boolean isAdmin = currentUser.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("admin"));
+    // --- Upload Logic ---
+
+    @Transactional
+    public MediaDto uploadGalleryImage(Long eventId, MultipartFile file, Authentication authentication) throws IOException {
+        User currentUser = (User) authentication.getPrincipal();
+        Event event = findEventById(eventId);
+
+        // CORRECTED LOGIC: Allow upload if user is the organizer OR a participant.
         boolean isOrganizer = event.getOrganizer().getId().equals(currentUser.getId());
         boolean isParticipant = participantRepository.findByEventIdAndUserId(eventId, currentUser.getId()).isPresent();
 
-        if (!isAdmin && !isOrganizer && !isParticipant) {
-            throw new AccessDeniedException("You must be a participant or the organizer to upload gallery images.");
+        if (!isParticipant && !isOrganizer) {
+            throw new AccessDeniedException("You must be a participant or the event organizer to upload gallery images.");
         }
 
-        Media savedMedia = store(file, event, MediaUsage.GALLERY, currentUser);
-        return mediaMapper.toDto(savedMedia);
+        return storeAndMap(file, event, MediaUsage.GALLERY, currentUser);
     }
 
     @Transactional
-    public void deleteGalleryImage(Long eventId, Long mediaId, Authentication authentication) {
+    public MediaDto uploadLogo(Long eventId, MultipartFile file, Authentication authentication) throws IOException {
         User currentUser = (User) authentication.getPrincipal();
-        Media media = findMediaOrThrow(mediaId, eventId);
-
-        if (media.getUsage() != MediaUsage.GALLERY) {
-            throw new IllegalArgumentException("This media item is not a gallery image.");
-        }
-
-        boolean isAdmin = currentUser.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("admin"));
-        boolean isOrganizer = media.getEvent().getOrganizer().getId().equals(currentUser.getId());
-        boolean isUploader = media.getUploader() != null && media.getUploader().getId().equals(currentUser.getId());
-
-        if (isAdmin || isOrganizer || isUploader) {
-            mediaRepository.delete(media);
-        } else {
-            throw new AccessDeniedException("You do not have permission to delete this gallery image.");
-        }
-    }
-
-    // --- LOGO & SCHEDULE LOGIC ---
-    @Transactional
-    public MediaDto uploadEventLogo(Long eventId, MultipartFile file, Authentication authentication) throws IOException {
-        Media savedMedia = uploadRestrictedMedia(eventId, file, authentication, MediaUsage.LOGO);
-        return mediaMapper.toDto(savedMedia);
-    }
-
-    @Transactional
-    public MediaDto uploadEventSchedule(Long eventId, MultipartFile file, Authentication authentication) throws IOException {
-        Media savedMedia = uploadRestrictedMedia(eventId, file, authentication, MediaUsage.SCHEDULE);
-        return mediaMapper.toDto(savedMedia);
-    }
-
-    @Transactional
-    public void deleteRestrictedMedia(Long eventId, MediaUsage usage, Authentication authentication) {
-        User currentUser = (User) authentication.getPrincipal();
-        Event event = eventRepository.findById(eventId)
-                .orElseThrow(() -> new EventNotFoundException("Event not found with id: " + eventId));
-
+        Event event = findEventById(eventId);
         authorizeOrganizerOrAdmin(event, currentUser);
 
-        mediaRepository.findOneByEventIdAndUsage(eventId, usage).ifPresent(mediaRepository::delete);
+        mediaRepository.findOneByEventIdAndUsage(eventId, MediaUsage.LOGO).ifPresent(mediaRepository::delete);
+        return storeAndMap(file, event, MediaUsage.LOGO, currentUser);
     }
 
-    // --- GENERIC GETTER ---
+    @Transactional
+    public MediaDto uploadSchedule(Long eventId, MultipartFile file, Authentication authentication) throws IOException {
+        User currentUser = (User) authentication.getPrincipal();
+        Event event = findEventById(eventId);
+        authorizeOrganizerOrAdmin(event, currentUser);
+
+        return storeAndMap(file, event, MediaUsage.SCHEDULE, currentUser);
+    }
+
+    @Transactional
+    public MediaDto adminUploadGalleryImage(Long eventId, MultipartFile file, Authentication authentication) throws IOException {
+        User currentUser = (User) authentication.getPrincipal();
+        Event event = findEventById(eventId);
+        return storeAndMap(file, event, MediaUsage.GALLERY, currentUser);
+    }
+
+    // --- Download Logic ---
+
     @Transactional(readOnly = true)
     public Media getMediaFile(Long mediaId) {
         return mediaRepository.findById(mediaId)
                 .orElseThrow(() -> new MediaNotFoundException("Media not found with id: " + mediaId));
     }
 
-    // --- PRIVATE HELPER METHODS ---
-    private Media uploadRestrictedMedia(Long eventId, MultipartFile file, Authentication authentication, MediaUsage usage) throws IOException {
+    @Transactional(readOnly = true)
+    public Media getScheduleFile(Long mediaId, Authentication authentication) {
         User currentUser = (User) authentication.getPrincipal();
-        Event event = eventRepository.findById(eventId)
-                .orElseThrow(() -> new EventNotFoundException("Event not found with id: " + eventId));
+        Media media = getMediaFile(mediaId);
+        Event event = media.getEvent();
 
-        authorizeOrganizerOrAdmin(event, currentUser);
-
-        mediaRepository.findOneByEventIdAndUsage(eventId, usage).ifPresent(mediaRepository::delete);
-
-        return store(file, event, usage, currentUser);
+        boolean isParticipant = participantRepository.findByEventIdAndUserId(event.getId(), currentUser.getId()).isPresent();
+        if (!isParticipant) {
+            throw new AccessDeniedException("You must be a participant to download the schedule.");
+        }
+        return media;
     }
 
-    private Media store(MultipartFile file, Event event, MediaUsage usage, User uploader) throws IOException {
+    // --- Deletion Logic ---
+
+    @Transactional
+    public void deleteOwnGalleryMedia(Long mediaId, Authentication authentication) {
+        User currentUser = (User) authentication.getPrincipal();
+        Media media = getMediaFile(mediaId);
+
+        if (media.getUploader() == null || !media.getUploader().getId().equals(currentUser.getId())) {
+            throw new AccessDeniedException("You can only delete your own media.");
+        }
+        mediaRepository.delete(media);
+    }
+
+    @Transactional
+    public void organizerDeleteGalleryMedia(Long eventId, Long mediaId, Authentication authentication) {
+        User currentUser = (User) authentication.getPrincipal();
+        Event event = findEventById(eventId);
+        authorizeOrganizerOrAdmin(event, currentUser);
+
+        Media media = getMediaFile(mediaId);
+        if(!Objects.equals(media.getEvent().getId(), eventId)) {
+            throw new AccessDeniedException("Media does not belong to this event.");
+        }
+        mediaRepository.delete(media);
+    }
+
+    @Transactional
+    public void adminDeleteMedia(Long mediaId) {
+        if (!mediaRepository.existsById(mediaId)) {
+            throw new MediaNotFoundException("Media not found with id: " + mediaId);
+        }
+        mediaRepository.deleteById(mediaId);
+    }
+
+    // --- Helper Methods ---
+
+    private Event findEventById(Long eventId) {
+        return eventRepository.findById(eventId)
+                .orElseThrow(() -> new EventNotFoundException("Event not found with id: " + eventId));
+    }
+
+    private MediaDto storeAndMap(MultipartFile file, Event event, MediaUsage usage, User uploader) throws IOException {
         Media media = new Media();
         media.setEvent(event);
         media.setUploader(uploader);
@@ -125,23 +158,7 @@ public class MediaService {
         media.setMediaType(MediaType.fromValue(file.getContentType()));
         media.setUsage(usage);
         media.setUploadedAt(Instant.now());
-        return mediaRepository.save(media);
-    }
-
-    private void authorizeOrganizerOrAdmin(Event event, User user) {
-        boolean isAdmin = user.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("admin"));
-        boolean isOrganizer = event.getOrganizer().getId().equals(user.getId());
-        if (!isAdmin && !isOrganizer) {
-            throw new AccessDeniedException("You must be the event organizer or an admin to perform this action.");
-        }
-    }
-
-    private Media findMediaOrThrow(Long mediaId, Long eventId) {
-        Media media = mediaRepository.findById(mediaId)
-                .orElseThrow(() -> new MediaNotFoundException("Media not found with id: " + mediaId));
-        if (!media.getEvent().getId().equals(eventId)) {
-            throw new AccessDeniedException("This media item does not belong to the specified event.");
-        }
-        return media;
+        Media savedMedia = mediaRepository.save(media);
+        return mediaMapper.toDto(savedMedia);
     }
 }

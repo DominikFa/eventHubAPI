@@ -33,7 +33,7 @@ public class Invitation {
     @JoinColumn(name = "account_id", nullable = false)
     private User invitedUser;
 
-    @Enumerated(EnumType.STRING)
+
     @Column(name = "invitation_status", length = 30, nullable = false)
     private InvitationStatus status;
 
