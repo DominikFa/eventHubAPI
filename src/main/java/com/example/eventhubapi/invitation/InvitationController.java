@@ -1,8 +1,11 @@
 package com.example.eventhubapi.invitation;
 
+import com.example.eventhubapi.invitation.dto.InvitationCreateRequest;
 import com.example.eventhubapi.invitation.dto.InvitationDto;
+import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -16,6 +19,13 @@ public class InvitationController {
 
     public InvitationController(InvitationService invitationService) {
         this.invitationService = invitationService;
+    }
+
+    @PostMapping
+    @PreAuthorize("hasAnyAuthority('organizer', 'admin')")
+    public ResponseEntity<InvitationDto> createInvitation(@Valid @RequestBody InvitationCreateRequest request, Authentication authentication) {
+        InvitationDto createdInvitation = invitationService.createInvitation(request, authentication.getName());
+        return new ResponseEntity<>(createdInvitation, HttpStatus.CREATED);
     }
 
     @GetMapping("/my")

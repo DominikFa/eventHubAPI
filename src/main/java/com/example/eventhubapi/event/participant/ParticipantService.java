@@ -15,6 +15,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.security.access.AccessDeniedException;
 
 import java.util.Map;
 
@@ -31,6 +32,15 @@ public class ParticipantService {
         this.eventRepository = eventRepository;
         this.userRepository = userRepository;
         this.participantMapper = participantMapper;
+    }
+
+    private void authorizeOrganizerOrAdmin(Event event, User user) {
+        boolean isOrganizer = event.getOrganizer().getId().equals(user.getId());
+        boolean isAdmin = user.getAuthorities().stream()
+                .anyMatch(grantedAuthority -> grantedAuthority.getAuthority().equals("admin"));
+        if (!isOrganizer && !isAdmin) {
+            throw new AccessDeniedException("You must be the event organizer or an admin to perform this action.");
+        }
     }
 
     @Transactional
@@ -77,10 +87,21 @@ public class ParticipantService {
     @Transactional(readOnly = true)
     public Map<String, String> getParticipantStatus(Long eventId, String userLogin) {
         User user = findUserByLogin(userLogin);
-        findEventById(eventId); // Ensures event exists
+        return checkStatus(eventId, user.getId());
+    }
 
+    @Transactional(readOnly = true)
+    public Map<String, String> getParticipantStatusForUser(Long eventId, Long userId, String organizerLogin) {
+        Event event = findEventById(eventId);
+        User organizer = findUserByLogin(organizerLogin);
+        authorizeOrganizerOrAdmin(event, organizer);
+
+        return checkStatus(eventId, userId);
+    }
+
+    private Map<String, String> checkStatus(Long eventId, Long userId) {
         // This is a simplified implementation. A real implementation would check for invitations, bans, etc.
-        String status = participantRepository.findByEventIdAndUserId(eventId, user.getId())
+        String status = participantRepository.findByEventIdAndUserId(eventId, userId)
                 .map(p -> "participant")
                 .orElse("not_participant");
 

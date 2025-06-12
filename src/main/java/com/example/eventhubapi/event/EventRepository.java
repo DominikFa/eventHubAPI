@@ -14,9 +14,9 @@ public interface EventRepository extends JpaRepository<Event, Long> {
     @Query("SELECT new com.example.eventhubapi.common.dto.EventSummary(e.id, e.name, e.startDate, e.endDate) FROM Event e")
     Page<EventSummary> findAllSummary(Pageable pageable);
 
-    // New query for public events
-    @Query("SELECT e FROM Event e WHERE e.isPublic = true")
-    Page<Event> findPublicEvents(Pageable pageable);
+    // MODIFIED: This query now returns a Page of EventSummary for public events.
+    @Query("SELECT new com.example.eventhubapi.common.dto.EventSummary(e.id, e.name, e.startDate, e.endDate) FROM Event e WHERE e.isPublic = true")
+    Page<EventSummary> findPublicEvents(Pageable pageable);
 
     // New query for events organized by a specific user
     @Query("SELECT e FROM Event e WHERE e.organizer.id = :organizerId")

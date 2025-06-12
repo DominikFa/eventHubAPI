@@ -1,12 +1,9 @@
 package com.example.eventhubapi.event;
 
+import com.example.eventhubapi.common.dto.EventSummary;
 import com.example.eventhubapi.event.dto.EventCreationRequest;
 import com.example.eventhubapi.event.dto.EventDto;
 import com.example.eventhubapi.event.participant.ParticipantService;
-import com.example.eventhubapi.event.participant.dto.ParticipantDto;
-import com.example.eventhubapi.invitation.InvitationService;
-import com.example.eventhubapi.invitation.dto.InvitationCreateRequest;
-import com.example.eventhubapi.invitation.dto.InvitationDto;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -26,13 +23,10 @@ import java.util.Map;
 public class EventController {
 
     private final EventService eventService;
-    private final ParticipantService participantService;
-    private final InvitationService invitationService;
 
-    public EventController(EventService eventService, ParticipantService participantService, InvitationService invitationService) {
+
+    public EventController(EventService eventService) {
         this.eventService = eventService;
-        this.participantService = participantService;
-        this.invitationService = invitationService;
     }
 
     // --- Event Endpoints ---
@@ -45,15 +39,15 @@ public class EventController {
     }
 
     @GetMapping("/public")
-    public ResponseEntity<Page<EventDto>> getPublicEvents(Pageable pageable) {
-        Page<EventDto> events = eventService.getPublicEvents(pageable);
+    public ResponseEntity<Page<EventSummary>> getPublicEvents(Pageable pageable) {
+        Page<EventSummary> events = eventService.getPublicEvents(pageable);
         return ResponseEntity.ok(events);
     }
 
     @GetMapping("/all")
     @PreAuthorize("hasAuthority('admin')")
-    public ResponseEntity<Page<EventDto>> getAllEvents(Pageable pageable) {
-        Page<EventDto> events = eventService.getAllEvents(pageable);
+    public ResponseEntity<Page<EventSummary>> getAllEvents(Pageable pageable) {
+        Page<EventSummary> events = eventService.getAllEvents(pageable);
         return ResponseEntity.ok(events);
     }
 
@@ -77,27 +71,4 @@ public class EventController {
         return ResponseEntity.noContent().build();
     }
 
-    // --- Participation Endpoints ---
-
-    @PostMapping("/{id}/join")
-    public ResponseEntity<ParticipantDto> joinEvent(@PathVariable Long id, Authentication authentication) {
-        ParticipantDto participant = participantService.joinEvent(id, authentication.getName());
-        return new ResponseEntity<>(participant, HttpStatus.CREATED);
-    }
-
-    @GetMapping("/{id}/participant-status")
-    public ResponseEntity<Map<String, String>> getParticipantStatus(@PathVariable Long id, Authentication authentication) {
-        Map<String, String> status = participantService.getParticipantStatus(id, authentication.getName());
-        return ResponseEntity.ok(status);
-    }
-
-    // --- Invitation Endpoints ---
-
-    @PostMapping("/{id}/invite")
-    @PreAuthorize("hasAnyAuthority('organizer', 'admin')")
-    public ResponseEntity<InvitationDto> inviteToEvent(@PathVariable Long id, @RequestBody InvitationCreateRequest request, Authentication authentication) {
-        request.setEventId(id);
-        InvitationDto createdInvitation = invitationService.createInvitation(request, authentication.getName());
-        return new ResponseEntity<>(createdInvitation, HttpStatus.CREATED);
-    }
 }

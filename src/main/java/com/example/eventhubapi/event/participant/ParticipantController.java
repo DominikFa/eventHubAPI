@@ -5,8 +5,12 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import java.util.Map;
+
+
 
 @RestController
 @RequestMapping("/api/events/{eventId}/participants")
@@ -22,6 +26,19 @@ public class ParticipantController {
     public ResponseEntity<ParticipantDto> joinEvent(@PathVariable Long eventId, Authentication authentication) {
         ParticipantDto participant = participantService.joinEvent(eventId, authentication.getName());
         return new ResponseEntity<>(participant, HttpStatus.CREATED);
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<Map<String, String>> getParticipantStatus(@PathVariable Long eventId, Authentication authentication) {
+        Map<String, String> status = participantService.getParticipantStatus(eventId, authentication.getName());
+        return ResponseEntity.ok(status);
+    }
+
+    @GetMapping("/{userId}")
+    @PreAuthorize("hasAnyAuthority('organizer', 'admin')")
+    public ResponseEntity<Map<String, String>> getParticipantStatusForUser(@PathVariable Long eventId, @PathVariable Long userId, Authentication authentication) {
+        Map<String, String> status = participantService.getParticipantStatusForUser(eventId, userId, authentication.getName());
+        return ResponseEntity.ok(status);
     }
 
     @GetMapping

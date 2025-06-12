@@ -8,6 +8,7 @@ import com.example.eventhubapi.invitation.dto.InvitationDto;
 import com.example.eventhubapi.invitation.enums.InvitationStatus;
 import com.example.eventhubapi.invitation.exception.InvitationNotFoundException;
 import com.example.eventhubapi.invitation.mapper.InvitationMapper;
+import com.example.eventhubapi.notification.NotificationService;
 import com.example.eventhubapi.user.User;
 import com.example.eventhubapi.user.UserRepository;
 import com.example.eventhubapi.user.exception.UserNotFoundException;
@@ -26,12 +27,14 @@ public class InvitationService {
     private final UserRepository userRepository;
     private final EventRepository eventRepository;
     private final InvitationMapper invitationMapper;
+    private final NotificationService notificationService;
 
-    public InvitationService(InvitationRepository invitationRepository, UserRepository userRepository, EventRepository eventRepository, InvitationMapper invitationMapper) {
+    public InvitationService(InvitationRepository invitationRepository, UserRepository userRepository, EventRepository eventRepository, InvitationMapper invitationMapper, NotificationService notificationService) {
         this.invitationRepository = invitationRepository;
         this.userRepository = userRepository;
         this.eventRepository = eventRepository;
         this.invitationMapper = invitationMapper;
+        this.notificationService = notificationService;
     }
 
     private void authorizeOrganizerOrAdmin(Event event, User user) {
@@ -60,6 +63,11 @@ public class InvitationService {
         invitation.setSentAt(Instant.now());
 
         Invitation savedInvitation = invitationRepository.save(invitation);
+
+        // Create a notification for the invited user
+        String notificationMessage = "You have been invited to the event: " + event.getName();
+        notificationService.createAndSendNotification(invitedUser, notificationMessage, event.getId());
+
         return invitationMapper.toDto(savedInvitation);
     }
 

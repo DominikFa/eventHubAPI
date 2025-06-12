@@ -64,11 +64,6 @@ public class AdminController {
         return ResponseEntity.noContent().build();
     }
 
-    @PostMapping("/accounts/{id}/ban")
-    public ResponseEntity<UserDto> banUser(@PathVariable Long id) {
-        UserDto updatedUser = adminService.updateUserStatus(id, "BANNED");
-        return ResponseEntity.ok(updatedUser);
-    }
 
     // --- Event Moderation Endpoints ---
 

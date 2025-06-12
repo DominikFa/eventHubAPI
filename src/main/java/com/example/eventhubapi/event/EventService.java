@@ -1,5 +1,6 @@
 package com.example.eventhubapi.event;
 
+import com.example.eventhubapi.common.dto.EventSummary;
 import com.example.eventhubapi.event.dto.EventCreationRequest;
 import com.example.eventhubapi.event.dto.EventDto;
 import com.example.eventhubapi.event.exception.EventNotFoundException;
@@ -69,14 +70,13 @@ public class EventService {
     }
 
     @Transactional(readOnly = true)
-    public Page<EventDto> getPublicEvents(Pageable pageable) {
-        return eventRepository.findPublicEvents(pageable).map(eventMapper::toDto);
+    public Page<EventSummary> getPublicEvents(Pageable pageable) {
+        return eventRepository.findPublicEvents(pageable);
     }
 
     @Transactional(readOnly = true)
-    public Page<EventDto> getAllEvents(Pageable pageable) {
-        Page<Event> eventPage = eventRepository.findAll(pageable);
-        return eventPage.map(eventMapper::toDto);
+    public Page<EventSummary> getAllEvents(Pageable pageable) {
+        return eventRepository.findAllSummary(pageable);
     }
 
     @Transactional(readOnly = true)

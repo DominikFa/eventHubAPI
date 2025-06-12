@@ -29,6 +29,8 @@ import org.testng.annotations.Test;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -211,7 +213,7 @@ public class EndpointTests extends AbstractTransactionalTestNGSpringContextTests
 
 
         // UC12: Join Event
-        mockMvc.perform(post("/api/events/" + eventId + "/join")
+        mockMvc.perform(post("/api/events/" + eventId + "/participants")
                         .header("Authorization", userToken))
                 .andExpect(status().isCreated());
 
@@ -243,8 +245,9 @@ public class EndpointTests extends AbstractTransactionalTestNGSpringContextTests
 
         // UC15.1: Send Invitation
         InvitationCreateRequest inviteRequest = new InvitationCreateRequest();
+        inviteRequest.setEventId(eventId);
         inviteRequest.setInvitedUserId(userId);
-        mockMvc.perform(post("/api/events/" + eventId + "/invite")
+        mockMvc.perform(post("/api/invitations")
                         .header("Authorization", organizerToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(inviteRequest)))
@@ -272,7 +275,7 @@ public class EndpointTests extends AbstractTransactionalTestNGSpringContextTests
 
 
         inviteRequest.setInvitedUserId(anotherUserId);
-        MvcResult anotherInviteResult = mockMvc.perform(post("/api/events/" + eventId + "/invite")
+        MvcResult anotherInviteResult = mockMvc.perform(post("/api/invitations")
                         .header("Authorization", organizerToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(inviteRequest)))
@@ -289,7 +292,7 @@ public class EndpointTests extends AbstractTransactionalTestNGSpringContextTests
         // UC15.2: Revoke Invitation
         Long thirdUserId = findOrCreateUserAndGetId("thirduser@test.com", "Third User", "password");
         inviteRequest.setInvitedUserId(thirdUserId);
-        MvcResult thirdInviteResult = mockMvc.perform(post("/api/events/" + eventId + "/invite")
+        MvcResult thirdInviteResult = mockMvc.perform(post("/api/invitations")
                         .header("Authorization", organizerToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(inviteRequest)))
@@ -382,7 +385,7 @@ public class EndpointTests extends AbstractTransactionalTestNGSpringContextTests
 
 
         // 2. User joins to become a participant
-        mockMvc.perform(post("/api/events/" + eventId + "/join").header("Authorization", userToken))
+        mockMvc.perform(post("/api/events/" + eventId + "/participants").header("Authorization", userToken))
                 .andExpect(status().isCreated());
 
 
@@ -442,6 +445,107 @@ public class EndpointTests extends AbstractTransactionalTestNGSpringContextTests
                 .andExpect(status().isNoContent());
     }
 
+    @Test
+    public void testEventListingAndUpdate() throws Exception {
+        EventCreationRequest event = createSampleEvent();
+        MvcResult createResult = mockMvc.perform(post("/api/events")
+                        .header("Authorization", organizerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(event)))
+                .andExpect(status().isCreated())
+                .andReturn();
+        long eventId = objectMapper.readTree(createResult.getResponse().getContentAsString()).get("id").asLong();
+
+        // Test fetching public events
+        mockMvc.perform(get("/api/events/public")).andExpect(status().isOk());
+
+        // Test fetching all events (admin)
+        mockMvc.perform(get("/api/events/all").header("Authorization", adminToken)).andExpect(status().isOk());
+
+        // Test fetching a single event
+        mockMvc.perform(get("/api/events/" + eventId)).andExpect(status().isOk());
+
+        // Test updating an event
+        event.setName("Updated Test Event");
+        mockMvc.perform(put("/api/events/" + eventId)
+                        .header("Authorization", organizerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(event)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("Updated Test Event"));
+    }
+
+    @Test
+    public void testMediaLogoAndSchedule() throws Exception {
+        EventCreationRequest event = createSampleEvent();
+        MvcResult createResult = mockMvc.perform(post("/api/events")
+                        .header("Authorization", organizerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(event)))
+                .andExpect(status().isCreated())
+                .andReturn();
+        long eventId = objectMapper.readTree(createResult.getResponse().getContentAsString()).get("id").asLong();
+
+        MockMultipartFile logoFile = new MockMultipartFile("file", "logo.png", MediaType.IMAGE_PNG_VALUE, "logo-content".getBytes());
+        mockMvc.perform(multipart("/api/events/" + eventId + "/media/logo")
+                        .file(logoFile)
+                        .header("Authorization", organizerToken))
+                .andExpect(status().isCreated());
+
+        MockMultipartFile scheduleFile = new MockMultipartFile("file", "schedule.pdf", MediaType.APPLICATION_PDF_VALUE, "schedule-content".getBytes());
+        MvcResult scheduleUploadResult = mockMvc.perform(multipart("/api/events/" + eventId + "/media/schedule")
+                        .file(scheduleFile)
+                        .header("Authorization", organizerToken))
+                .andExpect(status().isCreated()).andReturn();
+        long scheduleId = objectMapper.readTree(scheduleUploadResult.getResponse().getContentAsString()).get("id").asLong();
+
+        mockMvc.perform(post("/api/events/" + eventId + "/participants").header("Authorization", userToken))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(get("/api/media/schedule/" + scheduleId)
+                        .header("Authorization", userToken))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    public void testNotificationFlow() throws Exception {
+        EventCreationRequest event = createSampleEvent();
+        MvcResult createResult = mockMvc.perform(post("/api/events")
+                        .header("Authorization", organizerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(event)))
+                .andExpect(status().isCreated())
+                .andReturn();
+        long eventId = objectMapper.readTree(createResult.getResponse().getContentAsString()).get("id").asLong();
+
+        InvitationCreateRequest inviteRequest = new InvitationCreateRequest();
+        inviteRequest.setEventId(eventId);
+        inviteRequest.setInvitedUserId(userId);
+        mockMvc.perform(post("/api/invitations")
+                        .header("Authorization", organizerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(inviteRequest)))
+                .andExpect(status().isCreated());
+
+        MvcResult notificationResult = mockMvc.perform(get("/api/notifications")
+                        .header("Authorization", userToken))
+                .andExpect(status().isOk()).andReturn();
+
+        JsonNode notifications = objectMapper.readTree(notificationResult.getResponse().getContentAsString());
+        long notificationId = notifications.get("content").get(0).get("id").asLong();
+
+        Map<String, String> statusUpdate = new HashMap<>();
+        statusUpdate.put("status", "READ");
+
+        mockMvc.perform(patch("/api/notifications/" + notificationId + "/status")
+                        .header("Authorization", userToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(statusUpdate)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("READ"));
+
+    }
+
 
     private EventCreationRequest createSampleEvent() {
         LocationCreationRequest location = new LocationCreationRequest();
@@ -449,7 +553,7 @@ public class EndpointTests extends AbstractTransactionalTestNGSpringContextTests
         location.setStreetNumber("123");
         location.setCity("Test City");
         location.setPostalCode("12345");
-        location.setRegion("Test Region");
+        location.setRegion("TestReg");
         location.setCountryIsoCode("PL");
 
 

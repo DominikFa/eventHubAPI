@@ -32,7 +32,6 @@ public class AccountNotification {
     @JoinColumn(name = "notification_id", nullable = false)
     private Notification notification;
 
-    @Enumerated(EnumType.STRING)
     @Column(length = 30, nullable = false)
     private NotificationStatus status;
 

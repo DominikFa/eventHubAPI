@@ -18,11 +18,16 @@ import java.time.Instant;
 public class NotificationService {
 
     private final AccountNotificationRepository accountNotificationRepository;
+    private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
     private final NotificationMapper notificationMapper;
 
-    public NotificationService(AccountNotificationRepository accountNotificationRepository, UserRepository userRepository, NotificationMapper notificationMapper) {
+    public NotificationService(AccountNotificationRepository accountNotificationRepository,
+                               NotificationRepository notificationRepository,
+                               UserRepository userRepository,
+                               NotificationMapper notificationMapper) {
         this.accountNotificationRepository = accountNotificationRepository;
+        this.notificationRepository = notificationRepository;
         this.userRepository = userRepository;
         this.notificationMapper = notificationMapper;
     }
@@ -33,12 +38,16 @@ public class NotificationService {
         notification.setMessage(message);
         notification.setEventId(eventId);
         notification.setCreatedAt(Instant.now());
+        // 1. Save the main Notification object first to generate its ID
+        Notification savedNotification = notificationRepository.save(notification);
 
         AccountNotification accountNotification = new AccountNotification();
         accountNotification.setRecipient(recipient);
-        accountNotification.setNotification(notification);
+        // 2. Set the persisted Notification object on the AccountNotification
+        accountNotification.setNotification(savedNotification);
         accountNotification.setStatus(NotificationStatus.CREATED);
 
+        // 3. Save the join table entity
         accountNotificationRepository.save(accountNotification);
     }
 
