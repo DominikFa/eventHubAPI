@@ -28,6 +28,11 @@ public class Location {
 
     private String apartment;
 
+    // The MapLocation entity maps to the same primary key as Location (location_id).
+    // It's the "owning" side of the OneToOne relationship on the database schema
+    // since it contains the foreign key from location.
+    // However, in JPA, MapsId is used when the foreign key column is also the primary key.
+    // The cascade is needed here to save MapLocation when Location is saved.
     @OneToOne(mappedBy = "location", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private MapLocation mapLocation;
 

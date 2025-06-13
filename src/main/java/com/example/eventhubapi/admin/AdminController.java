@@ -40,11 +40,6 @@ public class AdminController {
 
     // --- User Moderation Endpoints ---
 
-    @GetMapping("/accounts")
-    public ResponseEntity<Page<UserDto>> getAllUsers(Pageable pageable) {
-        Page<UserDto> users = adminService.getAllUsers(pageable);
-        return ResponseEntity.ok(users);
-    }
 
     @PatchMapping("/accounts/{id}/status")
     public ResponseEntity<UserDto> updateUserStatus(@PathVariable Long id, @Valid @RequestBody AdminUserUpdateStatusRequest request) {

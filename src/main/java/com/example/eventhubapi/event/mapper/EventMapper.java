@@ -4,9 +4,11 @@ import com.example.eventhubapi.common.dto.UserSummary;
 import com.example.eventhubapi.event.Event;
 import com.example.eventhubapi.event.dto.EventCreationRequest;
 import com.example.eventhubapi.event.dto.EventDto;
+import com.example.eventhubapi.event.participant.ParticipantRepository;
+import com.example.eventhubapi.event.participant.enums.ParticipantStatus;
 import com.example.eventhubapi.user.User;
+import com.example.eventhubapi.user.mapper.UserMapper;
 import org.springframework.stereotype.Service;
-import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import com.example.eventhubapi.location.mapper.LocationMapper;
 
 
@@ -14,9 +16,13 @@ import com.example.eventhubapi.location.mapper.LocationMapper;
 public class EventMapper {
 
     private final LocationMapper locationMapper;
+    private final UserMapper userMapper;
+    private final ParticipantRepository participantRepository;
 
-    public EventMapper(LocationMapper locationMapper) {
+    public EventMapper(LocationMapper locationMapper, UserMapper userMapper, ParticipantRepository participantRepository) {
         this.locationMapper = locationMapper;
+        this.userMapper = userMapper;
+        this.participantRepository = participantRepository;
     }
     public EventDto toDto(Event event) {
         if (event == null) return null;
@@ -31,17 +37,14 @@ public class EventMapper {
         dto.setMaxParticipants(event.getMaxParticipants());
 
         if (event.getOrganizer() != null) {
-            User organizer = event.getOrganizer();
-            String organizerName = organizer.getProfile() != null ? organizer.getProfile().getName() : null;
-            String imageUrl = null;
-            if (organizer.getProfile() != null && organizer.getProfile().getProfileImage() != null) {
-                imageUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
-                        .path("/api/users/").path(String.valueOf(organizer.getId())).path("/profile-image").toUriString();
-            }
-            dto.setOrganizer(new UserSummary(organizer.getId(), organizerName, imageUrl));
+            dto.setOrganizer(userMapper.toUserSummary(event.getOrganizer()));
         }
 
-        dto.setParticipantsCount(event.getParticipants().size());
+
+        long attendingCount = participantRepository.countByEventIdAndStatus(event.getId(), ParticipantStatus.ATTENDING);
+        dto.setParticipantsCount((int) attendingCount);
+
+
         if (event.getLocation() != null) {
             dto.setLocation(locationMapper.toDto(event.getLocation()));
         }

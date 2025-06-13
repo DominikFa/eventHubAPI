@@ -10,8 +10,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 
-
-
 @RestController
 @RequestMapping("/api/events/{eventId}/participants")
 public class ParticipantController {
@@ -51,5 +49,17 @@ public class ParticipantController {
     public ResponseEntity<Void> leaveEvent(@PathVariable Long eventId, Authentication authentication) {
         participantService.leaveEvent(eventId, authentication.getName());
         return ResponseEntity.noContent().build();
+    }
+
+    @PatchMapping("/{userId}/status")
+    @PreAuthorize("hasAnyAuthority('organizer', 'admin')")
+    public ResponseEntity<ParticipantDto> updateParticipantStatus(
+            @PathVariable Long eventId,
+            @PathVariable Long userId,
+            @RequestBody Map<String, String> payload,
+            Authentication authentication) {
+        String newStatus = payload.get("status");
+        ParticipantDto updatedParticipant = participantService.updateParticipantStatus(eventId, userId, newStatus, authentication.getName());
+        return ResponseEntity.ok(updatedParticipant);
     }
 }

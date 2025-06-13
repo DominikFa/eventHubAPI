@@ -4,10 +4,17 @@ import com.example.eventhubapi.common.dto.EventSummary;
 import com.example.eventhubapi.common.dto.UserSummary;
 import com.example.eventhubapi.invitation.Invitation;
 import com.example.eventhubapi.invitation.dto.InvitationDto;
+import com.example.eventhubapi.user.mapper.UserMapper;
 import org.springframework.stereotype.Service;
 
 @Service
 public class InvitationMapper {
+
+    private final UserMapper userMapper;
+
+    public InvitationMapper(UserMapper userMapper) {
+        this.userMapper = userMapper;
+    }
 
     public InvitationDto toDto(Invitation invitation) {
         if (invitation == null) return null;
@@ -28,14 +35,10 @@ public class InvitationMapper {
         }
 
         if (invitation.getInvitedUser() != null) {
-            dto.setInvitedUser(new UserSummary(
-                    invitation.getInvitedUser().getId(),
-                    invitation.getInvitedUser().getProfile() != null ? invitation.getInvitedUser().getProfile().getName() : null,
-                    null // profileImageUrl is not in Profile entity
-            ));
+            dto.setInvitedUser(userMapper.toUserSummary(invitation.getInvitedUser()));
         }
 
-        // invitingUser is not available in the Invitation entity.
+        // invitingUser is not available in the Invitation entity, set to null as per original design.
         dto.setInvitingUser(null);
 
         return dto;

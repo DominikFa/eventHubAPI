@@ -1,3 +1,4 @@
+// File: eventHubAPI/src/main/java/com/example/eventhubapi/event/EventService.java
 package com.example.eventhubapi.event;
 
 import com.example.eventhubapi.common.dto.EventSummary;
@@ -5,6 +6,10 @@ import com.example.eventhubapi.event.dto.EventCreationRequest;
 import com.example.eventhubapi.event.dto.EventDto;
 import com.example.eventhubapi.event.exception.EventNotFoundException;
 import com.example.eventhubapi.event.mapper.EventMapper;
+import com.example.eventhubapi.event.participant.Participant;
+import com.example.eventhubapi.event.participant.ParticipantRepository;
+import com.example.eventhubapi.event.participant.enums.EventRole;
+import com.example.eventhubapi.event.participant.enums.ParticipantStatus;
 import com.example.eventhubapi.user.User;
 import com.example.eventhubapi.user.UserRepository;
 import com.example.eventhubapi.user.exception.UserNotFoundException;
@@ -13,27 +18,33 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import com.example.eventhubapi.location.Location;
 import com.example.eventhubapi.location.LocationService;
 import com.example.eventhubapi.location.dto.LocationDto;
 import com.example.eventhubapi.location.LocationRepository;
 import com.example.eventhubapi.location.exception.LocationNotFoundException;
 
-/**
- * Service class for event-related business logic.
- */
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import jakarta.persistence.criteria.Predicate;
+
 @Service
 public class EventService {
 
     private final EventRepository eventRepository;
     private final UserRepository userRepository;
+    private final ParticipantRepository participantRepository;
     private final EventMapper eventMapper;
     private final LocationService locationService;
     private final LocationRepository locationRepository;
 
-    public EventService(EventRepository eventRepository, UserRepository userRepository, EventMapper eventMapper, LocationService locationService, LocationRepository locationRepository) {
+    public EventService(EventRepository eventRepository, UserRepository userRepository, ParticipantRepository participantRepository, EventMapper eventMapper, LocationService locationService, LocationRepository locationRepository) {
         this.eventRepository = eventRepository;
         this.userRepository = userRepository;
+        this.participantRepository = participantRepository;
         this.eventMapper = eventMapper;
         this.locationService = locationService;
         this.locationRepository = locationRepository;
@@ -44,7 +55,7 @@ public class EventService {
         boolean isAdmin = user.getAuthorities().stream()
                 .anyMatch(grantedAuthority -> grantedAuthority.getAuthority().equals("admin"));
         if (!isOrganizer && !isAdmin) {
-            throw new AccessDeniedException("You must be the event organizer or an admin to perform this action.");
+            throw new AccessDeniedException("Access Denied");
         }
     }
 
@@ -66,12 +77,41 @@ public class EventService {
         }
 
         Event savedEvent = eventRepository.save(newEvent);
+
+        Participant organizerParticipant = new Participant();
+        organizerParticipant.setUser(organizer);
+        organizerParticipant.setEvent(savedEvent);
+        organizerParticipant.setEventRole(EventRole.ORGANIZER);
+        organizerParticipant.setStatus(ParticipantStatus.ATTENDING);
+
+        participantRepository.save(organizerParticipant);
+        savedEvent.getParticipants().add(organizerParticipant);
+
         return eventMapper.toDto(savedEvent);
     }
 
     @Transactional(readOnly = true)
-    public Page<EventSummary> getPublicEvents(Pageable pageable) {
-        return eventRepository.findPublicEvents(pageable);
+    public Page<EventSummary> getPublicEvents(Pageable pageable, String name, Instant startDate, Instant endDate) {
+        Specification<Event> spec = (root, query, criteriaBuilder) -> {
+            List<Predicate> predicates = new ArrayList<>();
+
+            predicates.add(criteriaBuilder.isTrue(root.get("isPublic")));
+
+            if (name != null && !name.isEmpty()) {
+                predicates.add(criteriaBuilder.like(criteriaBuilder.lower(root.get("name")), "%" + name.toLowerCase() + "%"));
+            }
+            if (startDate != null) {
+                predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get("startDate"), startDate));
+            }
+            if (endDate != null) {
+                predicates.add(criteriaBuilder.lessThanOrEqualTo(root.get("endDate"), endDate));
+            }
+
+            return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
+        };
+
+        return eventRepository.findAll(spec, pageable)
+                .map(event -> new EventSummary(event.getId(), event.getName(), event.getStartDate(), event.getEndDate()));
     }
 
     @Transactional(readOnly = true)
@@ -90,15 +130,19 @@ public class EventService {
     public EventDto updateEvent(Long eventId, EventCreationRequest request, String userLogin) {
         User user = userRepository.findByLogin(userLogin)
                 .orElseThrow(() -> new UserNotFoundException("User not found with login: " + userLogin));
-        Event event = eventRepository.findById(eventId)
+        Event eventToUpdate = eventRepository.findById(eventId)
                 .orElseThrow(() -> new EventNotFoundException("Event not found with id: " + eventId));
 
-        authorizeOrganizerOrAdmin(event, user);
+        authorizeOrganizerOrAdmin(eventToUpdate, user);
 
-        Event updatedEvent = eventMapper.toEntity(request, event.getOrganizer()); // Use original organizer
-        updatedEvent.setId(eventId); // Ensure we are updating the correct event
+        eventToUpdate.setName(request.getName());
+        eventToUpdate.setDescription(request.getDescription());
+        eventToUpdate.setStartDate(request.getStartDate());
+        eventToUpdate.setEndDate(request.getEndDate());
+        eventToUpdate.setPublic(request.getIsPublic());
+        eventToUpdate.setMaxParticipants(request.getMaxParticipants());
 
-        Event savedEvent = eventRepository.save(updatedEvent);
+        Event savedEvent = eventRepository.save(eventToUpdate);
         return eventMapper.toDto(savedEvent);
     }
 
@@ -106,10 +150,28 @@ public class EventService {
     public void deleteEvent(Long eventId, String userLogin) {
         User user = userRepository.findByLogin(userLogin)
                 .orElseThrow(() -> new UserNotFoundException("User not found with login: " + userLogin));
+
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new EventNotFoundException("Event not found with id: " + eventId));
 
         authorizeOrganizerOrAdmin(event, user);
-        eventRepository.deleteById(eventId);
+
+        eventRepository.delete(event);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<EventDto> getMyParticipatedEvents(String userLogin, Pageable pageable) {
+        User user = userRepository.findByLogin(userLogin)
+                .orElseThrow(() -> new UserNotFoundException("User not found with login: " + userLogin));
+        return eventRepository.findEventsByParticipantId(user.getId(), pageable)
+                .map(eventMapper::toDto);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<EventDto> getMyCreatedEvents(String userLogin, Pageable pageable) {
+        User user = userRepository.findByLogin(userLogin)
+                .orElseThrow(() -> new UserNotFoundException("User not found with login: " + userLogin));
+        return eventRepository.findByOrganizerId(user.getId(), pageable)
+                .map(eventMapper::toDto);
     }
 }

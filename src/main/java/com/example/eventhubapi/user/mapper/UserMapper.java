@@ -1,5 +1,6 @@
 package com.example.eventhubapi.user.mapper;
 
+import com.example.eventhubapi.common.dto.UserSummary;
 import com.example.eventhubapi.user.Profile;
 import com.example.eventhubapi.user.User;
 import com.example.eventhubapi.user.dto.UserDto;
@@ -34,19 +35,30 @@ public class UserMapper {
         if (profile != null) {
             dto.setName(profile.getName());
             dto.setDescription(profile.getDescription());
-
-            // If a profile image exists, generate the full, absolute URL for it.
-            if (profile.getProfileImage() != null && profile.getProfileImage().length > 0) {
-                String imageUrl = ServletUriComponentsBuilder
-                        .fromCurrentContextPath()
-                        .path("/api/users/")
-                        .path(String.valueOf(user.getId()))
-                        .path("/profile-image")
-                        .toUriString();
-                dto.setProfileImageUrl(imageUrl);
-            }
+            dto.setProfileImageUrl(buildProfileImageUrl(user.getId(), profile));
         }
 
         return dto;
+    }
+
+    public UserSummary toUserSummary(User user) {
+        if (user == null) {
+            return null;
+        }
+        String name = user.getProfile() != null ? user.getProfile().getName() : null;
+        String imageUrl = user.getProfile() != null ? buildProfileImageUrl(user.getId(), user.getProfile()) : null;
+        return new UserSummary(user.getId(), name, imageUrl);
+    }
+
+    private String buildProfileImageUrl(Long userId, Profile profile) {
+        if (profile.getProfileImage() != null && profile.getProfileImage().length > 0) {
+            return ServletUriComponentsBuilder
+                    .fromCurrentContextPath()
+                    .path("/api/users/")
+                    .path(String.valueOf(userId))
+                    .path("/profile-image")
+                    .toUriString();
+        }
+        return null;
     }
 }

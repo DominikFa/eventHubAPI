@@ -5,6 +5,7 @@ import com.example.eventhubapi.event.EventRepository;
 import com.example.eventhubapi.event.exception.EventNotFoundException;
 import com.example.eventhubapi.event.participant.dto.ParticipantDto;
 import com.example.eventhubapi.event.participant.enums.EventRole;
+import com.example.eventhubapi.event.participant.enums.ParticipantStatus;
 import com.example.eventhubapi.event.participant.exception.AlreadyParticipantException;
 import com.example.eventhubapi.event.participant.exception.NotParticipantException;
 import com.example.eventhubapi.event.participant.mapper.ParticipantMapper;
@@ -13,9 +14,9 @@ import com.example.eventhubapi.user.UserRepository;
 import com.example.eventhubapi.user.exception.UserNotFoundException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.security.access.AccessDeniedException;
 
 import java.util.Map;
 
@@ -46,17 +47,25 @@ public class ParticipantService {
     @Transactional
     public ParticipantDto joinEvent(Long eventId, String userLogin) {
         User user = findUserByLogin(userLogin);
-        Event event = findEventById(eventId);
+        Event event = findEventByIdWithPessimisticLock(eventId);
 
         if (participantRepository.findByEventIdAndUserId(eventId, user.getId()).isPresent()) {
             throw new AlreadyParticipantException("User is already a participant in this event.");
+        }
+
+        if (event.getMaxParticipants() != null) {
+            long attendingCount = participantRepository.countByEventIdAndStatus(eventId, ParticipantStatus.ATTENDING);
+            if (attendingCount >= event.getMaxParticipants()) {
+                throw new IllegalStateException("Event is full.");
+            }
         }
 
         Participant participant = new Participant();
         participant.setUser(user);
         participant.setEvent(event);
         participant.setEventRole(EventRole.PARTICIPANT);
-        participant.setStatus("attending");
+        participant.setStatus(ParticipantStatus.ATTENDING);
+        event.getParticipants().add(participant);
 
         Participant savedParticipant = participantRepository.save(participant);
         return participantMapper.toDto(savedParticipant);
@@ -72,6 +81,7 @@ public class ParticipantService {
             throw new IllegalStateException("The organizer cannot leave the event.");
         }
 
+        // Directly delete the participant entity
         participantRepository.delete(participant);
     }
 
@@ -100,9 +110,8 @@ public class ParticipantService {
     }
 
     private Map<String, String> checkStatus(Long eventId, Long userId) {
-        // This is a simplified implementation. A real implementation would check for invitations, bans, etc.
         String status = participantRepository.findByEventIdAndUserId(eventId, userId)
-                .map(p -> "participant")
+                .map(participant -> participant.getStatus().getValue())
                 .orElse("not_participant");
 
         return Map.of("status", status);
@@ -116,5 +125,26 @@ public class ParticipantService {
     private Event findEventById(Long eventId) {
         return eventRepository.findById(eventId)
                 .orElseThrow(() -> new EventNotFoundException("Event not found with id: " + eventId));
+    }
+
+    private Event findEventByIdWithPessimisticLock(Long eventId) {
+        return eventRepository.findByIdWithPessimisticLock(eventId)
+                .orElseThrow(() -> new EventNotFoundException("Event not found with id: " + eventId));
+    }
+
+
+    @Transactional
+    public ParticipantDto updateParticipantStatus(Long eventId, Long userId, String newStatus, String currentUserLogin) {
+        User currentUser = findUserByLogin(currentUserLogin);
+        Event event = findEventById(eventId);
+
+        authorizeOrganizerOrAdmin(event, currentUser);
+
+        Participant participant = participantRepository.findByEventIdAndUserId(eventId, userId)
+                .orElseThrow(() -> new NotParticipantException("User is not a participant in this event."));
+
+        participant.setStatus(ParticipantStatus.fromValue(newStatus));
+        Participant updatedParticipant = participantRepository.save(participant);
+        return participantMapper.toDto(updatedParticipant);
     }
 }

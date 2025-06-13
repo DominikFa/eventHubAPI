@@ -35,7 +35,8 @@ public class User implements UserDetails {
     @Column(name = "created_at", updatable = false, nullable = false)
     private Instant createdAt;
 
-    @OneToOne(mappedBy = "account", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    // MODIFIED: Added cascade = CascadeType.PERSIST and changed FetchType to LAZY
+    @OneToOne(mappedBy = "account", cascade = CascadeType.PERSIST, fetch = FetchType.LAZY)
     private Profile profile;
 
     @ManyToOne(fetch = FetchType.EAGER)

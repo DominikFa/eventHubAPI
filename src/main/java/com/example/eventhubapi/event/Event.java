@@ -12,9 +12,6 @@ import java.time.Instant;
 import java.util.HashSet;
 import java.util.Set;
 
-/**
- * Entity representing an event in the system.
- */
 @Entity
 @Table(name = "event")
 @Getter
@@ -53,6 +50,6 @@ public class Event {
     @JoinColumn(name = "location_id", referencedColumnName = "location_id")
     private Location location;
 
-    @OneToMany(mappedBy = "event", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "event")
     private Set<Participant> participants = new HashSet<>();
 }

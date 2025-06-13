@@ -5,10 +5,7 @@ import com.example.eventhubapi.auth.dto.LoginRequest;
 import com.example.eventhubapi.auth.dto.RegistrationRequest;
 import com.example.eventhubapi.security.Role;
 import com.example.eventhubapi.security.RoleRepository;
-import com.example.eventhubapi.user.AccountStatus;
-import com.example.eventhubapi.user.AccountStatusRepository;
-import com.example.eventhubapi.user.User;
-import com.example.eventhubapi.user.UserRepository;
+import com.example.eventhubapi.user.*;
 import com.example.eventhubapi.user.dto.UserDto;
 import com.example.eventhubapi.user.mapper.UserMapper;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -16,6 +13,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 
@@ -55,6 +53,7 @@ public class AuthService {
      * @param request DTO containing registration details.
      * @return The newly created User entity.
      */
+    @Transactional
     public UserDto register(RegistrationRequest request) {
         if (userRepository.existsByLogin(request.getLogin())) {
             throw new IllegalStateException("Login is already in use.");
@@ -74,6 +73,13 @@ public class AuthService {
         AccountStatus activeStatus = accountStatusRepository.findByStatusName("active")
                 .orElseThrow(() -> new IllegalStateException("Default account status 'active' not found."));
         newUser.setStatus(activeStatus);
+
+        // Create and set the profile
+        Profile profile = new Profile();
+        profile.setName(request.getName());
+        profile.setAccount(newUser);
+        newUser.setProfile(profile);
+
 
         User savedUser = userRepository.save(newUser);
         return userMapper.toUserDto(savedUser);

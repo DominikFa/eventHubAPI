@@ -31,8 +31,13 @@ public class LocationController {
 
     @GetMapping
     @PreAuthorize("hasAnyAuthority('organizer', 'admin')")
-    public ResponseEntity<Page<LocationDto>> getAllLocations(Pageable pageable) {
-        Page<LocationDto> locations = locationService.getAllLocations(pageable);
+    public ResponseEntity<Page<LocationDto>> getAllLocations(
+            Pageable pageable,
+            @RequestParam(required = false) String streetName,
+            @RequestParam(required = false) String city,
+            @RequestParam(required = false) String region,
+            @RequestParam(required = false) String countryIsoCode) {
+        Page<LocationDto> locations = locationService.getAllLocations(pageable, streetName, city, region, countryIsoCode);
         return ResponseEntity.ok(locations);
     }
 

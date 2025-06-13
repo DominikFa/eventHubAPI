@@ -19,6 +19,7 @@ import com.example.eventhubapi.security.exception.RoleNotFoundException;
 import com.example.eventhubapi.user.AccountStatus;
 import com.example.eventhubapi.user.AccountStatusRepository;
 import com.example.eventhubapi.user.User;
+import com.example.eventhubapi.event.participant.ParticipantRepository;
 import com.example.eventhubapi.user.UserRepository;
 import com.example.eventhubapi.user.dto.UserDto;
 import com.example.eventhubapi.user.exception.UserNotFoundException;
@@ -46,6 +47,7 @@ public class AdminService {
     private final EventMapper eventMapper;
     private final AccountStatusRepository accountStatusRepository;
     private final LocationService locationService;
+    private final ParticipantRepository participantRepository;
 
     public AdminService(UserRepository userRepository,
                         EventRepository eventRepository,
@@ -55,7 +57,8 @@ public class AdminService {
                         UserMapper userMapper,
                         EventMapper eventMapper,
                         AccountStatusRepository accountStatusRepository,
-                        LocationService locationService) {
+                        LocationService locationService,
+                        ParticipantRepository participantRepository) {
         this.userRepository = userRepository;
         this.eventRepository = eventRepository;
         this.mediaRepository = mediaRepository;
@@ -65,13 +68,9 @@ public class AdminService {
         this.eventMapper = eventMapper;
         this.accountStatusRepository = accountStatusRepository;
         this.locationService = locationService;
+        this.participantRepository = participantRepository;
     }
 
-    @Transactional(readOnly = true)
-    public Page<UserDto> getAllUsers(Pageable pageable) {
-        return userRepository.findAll(pageable)
-                .map(userMapper::toUserDto);
-    }
 
     @Transactional
     public UserDto updateUserStatus(Long userId, String newStatusName) {
@@ -129,12 +128,14 @@ public class AdminService {
         return eventMapper.toDto(eventRepository.save(event));
     }
 
+
     @Transactional
     public void deleteEvent(Long eventId) {
-        if (!eventRepository.existsById(eventId)) {
-            throw new EventNotFoundException("Event not found with id: " + eventId);
-        }
-        eventRepository.deleteById(eventId);
+
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new EventNotFoundException("Event not found with id: " + eventId));
+
+        eventRepository.delete(event);
     }
 
     @Transactional

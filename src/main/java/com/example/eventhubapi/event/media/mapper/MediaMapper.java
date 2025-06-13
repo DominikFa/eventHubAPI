@@ -3,10 +3,19 @@ package com.example.eventhubapi.event.media.mapper;
 import com.example.eventhubapi.common.dto.UserSummary;
 import com.example.eventhubapi.event.media.Media;
 import com.example.eventhubapi.event.media.dto.MediaDto;
+import com.example.eventhubapi.user.mapper.UserMapper;
 import org.springframework.stereotype.Service;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+
 
 @Service
 public class MediaMapper {
+    private final UserMapper userMapper;
+
+    public MediaMapper(UserMapper userMapper) {
+        this.userMapper = userMapper;
+    }
+
     public MediaDto toDto(Media media) {
         if (media == null) return null;
 
@@ -17,20 +26,30 @@ public class MediaMapper {
         dto.setUploadedAt(media.getUploadedAt());
 
         if (media.getUploader() != null) {
-            String uploaderName = media.getUploader().getProfile() != null ? media.getUploader().getProfile().getName() : null;
-            dto.setUploader(new UserSummary(
-                    media.getUploader().getId(),
-                    uploaderName,
-                    null // Profile image URL is not available as a string
-            ));
+            dto.setUploader(userMapper.toUserSummary(media.getUploader()));
         }
 
-        // Dynamically generate the download URL
-        if (media.getEvent() != null) {
-            String url = String.format("/api/events/%d/media/%d", media.getEvent().getId(), media.getId());
-            dto.setDownloadUrl(url);
-        }
+        dto.setDownloadUrl(buildDownloadUrl(media));
+
 
         return dto;
+    }
+
+    private String buildDownloadUrl(Media media) {
+        if (media.getId() == null) {
+            return null;
+        }
+
+        String basePath = "/api/media/";
+        String usagePath = media.getUsage().getValue(); // "gallery", "schedule", "logo"
+        String id = media.getId().toString();
+
+        return ServletUriComponentsBuilder
+                .fromCurrentContextPath()
+                .path(basePath)
+                .path(usagePath)
+                .path("/")
+                .path(id)
+                .toUriString();
     }
 }

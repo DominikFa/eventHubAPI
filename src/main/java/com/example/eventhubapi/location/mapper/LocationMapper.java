@@ -26,8 +26,6 @@ public class LocationMapper {
         if (location.getPostalCode() != null) {
             PostalCode pc = location.getPostalCode();
             dto.setPostalCode(pc.getCode());
-            // Since a postal code can now belong to multiple cities,
-            // we will take the first city from the set for the DTO.
             if (pc.getCities() != null && !pc.getCities().isEmpty()) {
                 City city = pc.getCities().iterator().next();
                 dto.setCity(city.getName());
@@ -55,6 +53,9 @@ public class LocationMapper {
             MapLocation mapLocation = new MapLocation();
             mapLocation.setLatitude(request.getLatitude());
             mapLocation.setLongitude(request.getLongitude());
+
+            mapLocation.setLocation(location); // ✨ FIX
+
             location.setMapLocation(mapLocation);
         }
 

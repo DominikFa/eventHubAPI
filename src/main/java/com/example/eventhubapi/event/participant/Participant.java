@@ -7,6 +7,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import com.example.eventhubapi.event.participant.enums.ParticipantStatus;
 
 import java.io.Serializable;
 import java.util.Objects;
@@ -34,7 +35,7 @@ public class Participant {
     private Event event;
 
     @Column(name = "status", nullable = false)
-    private String status;
+    private ParticipantStatus  status;
 
 
     @Column(name = "event_role", length = 30, nullable = false)

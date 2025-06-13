@@ -10,4 +10,5 @@ public class ParticipantDto {
     private Long id;
     private UserSummary user;
     private String eventRole;
+    private String status;
 }

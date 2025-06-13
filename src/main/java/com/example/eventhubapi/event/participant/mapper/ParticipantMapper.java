@@ -15,6 +15,7 @@ public class ParticipantMapper {
         ParticipantDto dto = new ParticipantDto();
         dto.setId(participant.getUser().getId());
         dto.setEventRole(participant.getEventRole().getValue());
+        dto.setStatus(participant.getStatus().getValue());
 
         User user = participant.getUser();
         if (user != null) {
