@@ -5,6 +5,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/**
+ * Represents a country, identified by its name and a unique ISO code.
+ */
 @Entity
 @Table(name = "country")
 @Getter

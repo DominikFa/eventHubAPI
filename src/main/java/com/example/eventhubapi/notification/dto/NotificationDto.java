@@ -6,6 +6,9 @@ import lombok.Setter;
 
 import java.time.Instant;
 
+/**
+ * DTO for representing a notification to be sent to the client.
+ */
 @Getter
 @Setter
 public class NotificationDto {
@@ -14,6 +17,6 @@ public class NotificationDto {
     private Instant createdAt;
     private String status;
     private Long eventId;
-    private String eventName; // To be populated in the mapper
+    private String eventName;
     private UserSummary recipient;
 }

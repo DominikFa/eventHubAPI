@@ -2,6 +2,9 @@ package com.example.eventhubapi.event.media.enums;
 
 import com.fasterxml.jackson.annotation.JsonValue;
 
+/**
+ * Defines the purpose of a media file within an event (e.g., GALLERY, LOGO).
+ */
 public enum MediaUsage {
     GALLERY("gallery"),
     SCHEDULE("schedule"),

@@ -5,6 +5,10 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/**
+ * Represents a user's profile, containing extended information like name,
+ * description, and a profile image. It is linked one-to-one with the User entity.
+ */
 @Entity
 @Table(name = "profile")
 @Getter

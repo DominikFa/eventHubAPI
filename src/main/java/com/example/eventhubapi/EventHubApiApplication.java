@@ -8,6 +8,10 @@ import io.swagger.v3.oas.annotations.security.SecurityScheme;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
+/**
+ * Main entry point for the EventHub Spring Boot application.
+ * Configures OpenAPI documentation and JWT security scheme.
+ */
 @SpringBootApplication
 @OpenAPIDefinition(
 		info = @Info(title = "EventHub API", version = "v1"),
@@ -21,6 +25,10 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 )
 public class EventHubApiApplication {
 
+	/**
+	 * The main method that starts the Spring Boot application.
+	 * @param args Command line arguments.
+	 */
 	public static void main(String[] args) {
 		SpringApplication.run(EventHubApiApplication.class, args);
 	}

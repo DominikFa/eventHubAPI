@@ -1,5 +1,3 @@
-// File: eventHubAPI/src/main/java/com/example/eventhubapi/user/UserService.java
-
 package com.example.eventhubapi.user;
 
 import com.example.eventhubapi.common.dto.UserSummary;
@@ -10,17 +8,17 @@ import com.example.eventhubapi.user.exception.UserNotFoundException;
 import com.example.eventhubapi.user.mapper.UserMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.domain.Specification; // Import Specification
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.util.ArrayList; // Import ArrayList
-import java.util.List; // Import List
-import jakarta.persistence.criteria.Predicate; // Import Predicate
-import jakarta.persistence.criteria.Join; // Import Join
+import java.util.ArrayList;
+import java.util.List;
+import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Join;
 
 /**
  * Service class for user-related business logic.
@@ -32,12 +30,23 @@ public class UserService {
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
 
+    /**
+     * Constructs a UserService with necessary dependencies.
+     * @param userRepository The repository for user data access.
+     * @param userMapper The mapper for converting user entities to DTOs.
+     * @param passwordEncoder The encoder for user passwords.
+     */
     public UserService(UserRepository userRepository, UserMapper userMapper, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.userMapper = userMapper;
         this.passwordEncoder = passwordEncoder;
     }
 
+    /**
+     * Retrieves a user's full profile by their ID.
+     * @param userId The ID of the user.
+     * @return A UserDto containing the user's profile information.
+     */
     @Transactional(readOnly = true)
     public UserDto getUserProfile(Long userId) {
         User user = userRepository.findById(userId)
@@ -45,6 +54,11 @@ public class UserService {
         return userMapper.toUserDto(user);
     }
 
+    /**
+     * Retrieves a user's summary by their ID.
+     * @param userId The ID of the user.
+     * @return A UserSummary DTO.
+     */
     @Transactional(readOnly = true)
     public UserSummary getAccountSummary(Long userId) {
         User user = userRepository.findById(userId)
@@ -53,13 +67,12 @@ public class UserService {
     }
 
     /**
-     * Retrieves a paginated list of all users as UserSummary objects.
-     * This is useful for selection lists where full user details are not needed.
-     * @param pageable Pagination information.
-     * @param name Optional filter for user's profile name (case-insensitive, contains).
-     * @param login Optional filter for user's login (email) (case-insensitive, contains).
-     * @param role Optional filter for user's role name (case-insensitive, exact match).
-     * @param status Optional filter for user's account status (case-insensitive, exact match).
+     * Retrieves a paginated and filterable list of all user summaries.
+     * @param pageable Pagination and sorting information.
+     * @param name Optional filter for user's profile name.
+     * @param login Optional filter for user's login.
+     * @param role Optional filter for user's role name.
+     * @param status Optional filter for user's account status.
      * @return A Page of UserSummary objects.
      */
     @Transactional(readOnly = true)
@@ -69,37 +82,37 @@ public class UserService {
             String login,
             String role,
             String status) {
-        // MODIFIED: Moved filtering logic from repository to service using Specification
         Specification<User> spec = (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
 
             if (name != null && !name.isEmpty()) {
-                // Join to profile table for filtering by profile name
                 predicates.add(criteriaBuilder.like(criteriaBuilder.lower(root.join("profile").get("name")), "%" + name.toLowerCase() + "%"));
             }
             if (login != null && !login.isEmpty()) {
                 predicates.add(criteriaBuilder.like(criteriaBuilder.lower(root.get("login")), "%" + login.toLowerCase() + "%"));
             }
             if (role != null && !role.isEmpty()) {
-                // Join to role table for filtering by role name
                 predicates.add(criteriaBuilder.equal(criteriaBuilder.lower(root.join("role").get("name")), role.toLowerCase()));
             }
             if (status != null && !status.isEmpty()) {
-                // Join to status table for filtering by status name
                 predicates.add(criteriaBuilder.equal(criteriaBuilder.lower(root.join("status").get("statusName")), status.toLowerCase()));
             }
 
-            // Ensure distinct results if multiple joins result in duplicates
             query.distinct(true);
 
             return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
         };
 
-        // Use findAll with Specification
         return userRepository.findAll(spec, pageable)
                 .map(userMapper::toUserSummary);
     }
 
+    /**
+     * Updates a user's profile information.
+     * @param userId The ID of the user to update.
+     * @param request The request DTO with the new profile data.
+     * @return The updated UserDto.
+     */
     @Transactional
     public UserDto updateUserProfile(Long userId, UpdateProfileRequest request) {
 
@@ -124,6 +137,11 @@ public class UserService {
         return userMapper.toUserDto(updatedUser);
     }
 
+    /**
+     * Changes a user's password.
+     * @param userId The ID of the user.
+     * @param request The request DTO with old and new passwords.
+     */
     @Transactional
     public void changePassword(Long userId, ChangePasswordRequest request) {
         User user = userRepository.findById(userId)
@@ -141,6 +159,12 @@ public class UserService {
         userRepository.save(user);
     }
 
+    /**
+     * Updates a user's profile image.
+     * @param userId The ID of the user.
+     * @param file The new profile image file.
+     * @throws IOException If an I/O error occurs.
+     */
     @Transactional
     public void updateProfileImage(Long userId, MultipartFile file) throws IOException {
         User user = userRepository.findById(userId)
@@ -157,6 +181,11 @@ public class UserService {
         userRepository.save(user);
     }
 
+    /**
+     * Retrieves a user's profile image.
+     * @param userId The ID of the user.
+     * @return A byte array of the image data.
+     */
     @Transactional(readOnly = true)
     public byte[] getProfileImage(Long userId) {
         User user = userRepository.findById(userId)
@@ -168,6 +197,10 @@ public class UserService {
         return user.getProfile().getProfileImage();
     }
 
+    /**
+     * Deletes a user account.
+     * @param userId The ID of the user to delete.
+     */
     @Transactional
     public void deleteUser(Long userId) {
         if (!userRepository.existsById(userId)) {

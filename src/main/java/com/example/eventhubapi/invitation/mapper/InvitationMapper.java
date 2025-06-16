@@ -1,12 +1,14 @@
 package com.example.eventhubapi.invitation.mapper;
 
 import com.example.eventhubapi.common.dto.EventSummary;
-import com.example.eventhubapi.common.dto.UserSummary;
 import com.example.eventhubapi.invitation.Invitation;
 import com.example.eventhubapi.invitation.dto.InvitationDto;
 import com.example.eventhubapi.user.mapper.UserMapper;
 import org.springframework.stereotype.Service;
 
+/**
+ * Service class to map Invitation entities to InvitationDto objects.
+ */
 @Service
 public class InvitationMapper {
 
@@ -38,7 +40,6 @@ public class InvitationMapper {
             dto.setInvitedUser(userMapper.toUserSummary(invitation.getInvitedUser()));
         }
 
-        // invitingUser is not available in the Invitation entity, set to null as per original design.
         dto.setInvitingUser(null);
 
         return dto;

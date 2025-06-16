@@ -4,6 +4,9 @@ import com.example.eventhubapi.common.dto.UserSummary;
 import lombok.Getter;
 import lombok.Setter;
 
+/**
+ * DTO for exposing event participant data to the client.
+ */
 @Getter
 @Setter
 public class ParticipantDto {

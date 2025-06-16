@@ -4,6 +4,9 @@ import jakarta.validation.constraints.NotEmpty;
 import lombok.Getter;
 import lombok.Setter;
 
+/**
+ * DTO for capturing the data needed to create a new location.
+ */
 @Getter
 @Setter
 public class LocationCreationRequest {

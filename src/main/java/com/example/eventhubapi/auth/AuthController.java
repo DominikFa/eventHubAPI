@@ -4,7 +4,6 @@ import com.example.eventhubapi.auth.dto.AuthResponse;
 import com.example.eventhubapi.auth.dto.LoginRequest;
 import com.example.eventhubapi.auth.dto.RegistrationRequest;
 import com.example.eventhubapi.user.dto.UserDto;
-import com.example.eventhubapi.user.mapper.UserMapper;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -21,16 +20,17 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
 
     private final AuthService authService;
-    private final UserMapper userMapper;
 
-    public AuthController(AuthService authService, UserMapper userMapper) {
+    /**
+     * Constructs an AuthController with the necessary services.
+     * @param authService The service for authentication and registration logic.
+     */
+    public AuthController(AuthService authService) {
         this.authService = authService;
-        this.userMapper = userMapper;
     }
 
     /**
      * Endpoint for user login.
-     *
      * @param loginRequest DTO containing login credentials.
      * @return ResponseEntity containing the JWT and user details.
      */
@@ -42,7 +42,6 @@ public class AuthController {
 
     /**
      * Endpoint for new user registration.
-     *
      * @param registrationRequest DTO containing details for the new user.
      * @return ResponseEntity containing the newly created user's details.
      */

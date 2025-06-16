@@ -1,5 +1,3 @@
-// File: eventHubAPI/src/main/java/com/example/eventhubapi/user/UserController.java
-
 package com.example.eventhubapi.user;
 
 import com.example.eventhubapi.user.dto.ChangePasswordRequest;
@@ -21,16 +19,28 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 
+/**
+ * REST controller for user-related actions, such as profile management.
+ */
 @RestController
 @RequestMapping("/api")
 public class UserController {
 
     private final UserService userService;
 
+    /**
+     * Constructs a UserController with the necessary UserService.
+     * @param userService The service for user-related business logic.
+     */
     public UserController(UserService userService) {
         this.userService = userService;
     }
 
+    /**
+     * Retrieves the profile of the currently authenticated user.
+     * @param authentication The authentication object of the current user.
+     * @return A ResponseEntity with the UserDto of the current user.
+     */
     @GetMapping("/account/me")
     public ResponseEntity<UserDto> getCurrentUser(Authentication authentication) {
         User currentUser = (User) authentication.getPrincipal();
@@ -38,12 +48,22 @@ public class UserController {
         return ResponseEntity.ok(userDto);
     }
 
+    /**
+     * Retrieves a summary of a user's account by ID.
+     * @param id The ID of the user.
+     * @return A ResponseEntity with the UserSummary.
+     */
     @GetMapping("/accounts/{id}/summary")
     public ResponseEntity<UserSummary> getAccountSummary(@PathVariable Long id) {
         UserSummary summary = userService.getAccountSummary(id);
         return ResponseEntity.ok(summary);
     }
 
+    /**
+     * Retrieves the full details of a user's account by ID.
+     * @param id The ID of the user.
+     * @return A ResponseEntity with the UserDto.
+     */
     @GetMapping("/accounts/{id}")
     public ResponseEntity<UserDto> getAccount(@PathVariable Long id) {
         UserDto userDto = userService.getUserProfile(id);
@@ -53,14 +73,12 @@ public class UserController {
     /**
      * Retrieves a paginated and filterable list of all user summaries.
      * Accessible by users with 'organizer' or 'admin' authority.
-     * This endpoint is intended for scenarios like selecting users for invitations,
-     * where only summary information is required.
      * @param pageable Pagination and sorting information.
-     * @param name Optional filter for user's profile name (case-insensitive, contains).
-     * @param login Optional filter for user's login (email) (case-insensitive, contains).
-     * @param role Optional filter for user's role name (case-insensitive, exact match).
-     * @param status Optional filter for user's account status (case-insensitive, exact match).
-     * @return ResponseEntity with a page of UserSummary objects and HTTP status 200 OK.
+     * @param name Optional filter for user's profile name.
+     * @param login Optional filter for user's login.
+     * @param role Optional filter for user's role name.
+     * @param status Optional filter for user's account status.
+     * @return A ResponseEntity with a page of UserSummary objects.
      */
     @GetMapping("/accounts/summary/all")
     @PreAuthorize("hasAnyAuthority('organizer', 'admin')")
@@ -70,10 +88,16 @@ public class UserController {
             @RequestParam(required = false) String login,
             @RequestParam(required = false) String role,
             @RequestParam(required = false) String status) {
-        Page<UserSummary> userSummaries = userService.getAllUserSummaries(pageable, name, login, role, status); // Pass filters to service
+        Page<UserSummary> userSummaries = userService.getAllUserSummaries(pageable, name, login, role, status);
         return ResponseEntity.ok(userSummaries);
     }
 
+    /**
+     * Updates the profile of the currently authenticated user.
+     * @param authentication The authentication object of the current user.
+     * @param request The request body containing the updated profile information.
+     * @return A ResponseEntity with the updated UserDto.
+     */
     @PutMapping("/account/profile")
     public ResponseEntity<UserDto> updateCurrentUser(Authentication authentication, @Valid @RequestBody UpdateProfileRequest request) {
         User currentUser = (User) authentication.getPrincipal();
@@ -81,6 +105,12 @@ public class UserController {
         return ResponseEntity.ok(updatedUser);
     }
 
+    /**
+     * Changes the password of the currently authenticated user.
+     * @param authentication The authentication object of the current user.
+     * @param request The request body containing the old and new passwords.
+     * @return A ResponseEntity with a success message.
+     */
     @PutMapping("/account/password")
     public ResponseEntity<String> changePassword(Authentication authentication, @Valid @RequestBody ChangePasswordRequest request) {
         User currentUser = (User) authentication.getPrincipal();
@@ -88,6 +118,13 @@ public class UserController {
         return ResponseEntity.ok("Password changed successfully.");
     }
 
+    /**
+     * Uploads or updates the profile image for the currently authenticated user.
+     * @param authentication The authentication object of the current user.
+     * @param file The image file to upload.
+     * @return A ResponseEntity with a success message.
+     * @throws IOException if an I/O error occurs.
+     */
     @PostMapping("/account/profile-image")
     public ResponseEntity<String> uploadProfileImage(Authentication authentication, @RequestParam("file") MultipartFile file) throws IOException {
         User currentUser = (User) authentication.getPrincipal();
@@ -95,15 +132,25 @@ public class UserController {
         return ResponseEntity.ok("Profile image updated successfully.");
     }
 
+    /**
+     * Retrieves the profile image of a user by their ID.
+     * @param id The ID of the user whose image is to be retrieved.
+     * @return A ResponseEntity containing the image resource.
+     */
     @GetMapping("/users/{id}/profile-image")
     public ResponseEntity<Resource> getProfileImage(@PathVariable Long id) {
         byte[] imageBytes = userService.getProfileImage(id);
         return ResponseEntity.ok()
-                .contentType(MediaType.IMAGE_JPEG) // Assuming JPEG, could be dynamic
+                .contentType(MediaType.IMAGE_JPEG)
                 .header(HttpHeaders.CONTENT_DISPOSITION, "inline")
                 .body(new ByteArrayResource(imageBytes));
     }
 
+    /**
+     * Deletes the account of the currently authenticated user.
+     * @param authentication The authentication object of the current user.
+     * @return A ResponseEntity with no content.
+     */
     @DeleteMapping("/account")
     public ResponseEntity<Void> deleteMyAccount(Authentication authentication) {
         User currentUser = (User) authentication.getPrincipal();

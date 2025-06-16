@@ -7,14 +7,13 @@ import com.example.eventhubapi.user.dto.UserDto;
  */
 public class AuthResponse {
     private String token;
-    private UserDto user; // In a real app, this should be a UserDTO
+    private UserDto user;
 
     public AuthResponse(String token, UserDto user) {
         this.token = token;
         this.user = user;
     }
 
-    // Getters and Setters
     public String getToken() {
         return token;
     }

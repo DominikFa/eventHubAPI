@@ -14,6 +14,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 
+/**
+ * Service class for handling notification-related business logic.
+ */
 @Service
 public class NotificationService {
 
@@ -22,6 +25,13 @@ public class NotificationService {
     private final UserRepository userRepository;
     private final NotificationMapper notificationMapper;
 
+    /**
+     * Constructs a NotificationService with the necessary dependencies.
+     * @param accountNotificationRepository The repository for the join table between accounts and notifications.
+     * @param notificationRepository The repository for notification data access.
+     * @param userRepository The repository for user data access.
+     * @param notificationMapper The mapper for converting Notification entities to DTOs.
+     */
     public NotificationService(AccountNotificationRepository accountNotificationRepository,
                                NotificationRepository notificationRepository,
                                UserRepository userRepository,
@@ -32,25 +42,34 @@ public class NotificationService {
         this.notificationMapper = notificationMapper;
     }
 
+    /**
+     * Creates and sends a notification to a specific user.
+     * @param recipient The user who will receive the notification.
+     * @param message The content of the notification message.
+     * @param eventId The ID of the event related to the notification, can be null.
+     */
     @Transactional
     public void createAndSendNotification(User recipient, String message, Long eventId) {
         Notification notification = new Notification();
         notification.setMessage(message);
         notification.setEventId(eventId);
         notification.setCreatedAt(Instant.now());
-        // 1. Save the main Notification object first to generate its ID
         Notification savedNotification = notificationRepository.save(notification);
 
         AccountNotification accountNotification = new AccountNotification();
         accountNotification.setRecipient(recipient);
-        // 2. Set the persisted Notification object on the AccountNotification
         accountNotification.setNotification(savedNotification);
         accountNotification.setStatus(NotificationStatus.CREATED);
 
-        // 3. Save the join table entity
         accountNotificationRepository.save(accountNotification);
     }
 
+    /**
+     * Retrieves a paginated list of notifications for a specific user.
+     * @param userLogin The login of the user.
+     * @param pageable Pagination and sorting information.
+     * @return A Page of NotificationDto objects.
+     */
     @Transactional(readOnly = true)
     public Page<NotificationDto> getNotificationsForUser(String userLogin, Pageable pageable) {
         User user = findUserByLogin(userLogin);
@@ -58,6 +77,13 @@ public class NotificationService {
                 .map(notificationMapper::toDto);
     }
 
+    /**
+     * Updates the status of a notification for a user.
+     * @param notificationId The ID of the notification to update.
+     * @param status The new status for the notification.
+     * @param userLogin The login of the user whose notification is being updated.
+     * @return A NotificationDto representing the updated notification.
+     */
     @Transactional
     public NotificationDto updateStatus(Long notificationId, NotificationStatus status, String userLogin) {
         User user = findUserByLogin(userLogin);

@@ -6,6 +6,9 @@ import lombok.Setter;
 
 import java.time.Instant;
 
+/**
+ * DTO for exposing media file metadata to the client.
+ */
 @Getter
 @Setter
 public class MediaDto {

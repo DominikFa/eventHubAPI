@@ -7,6 +7,9 @@ import com.example.eventhubapi.user.User;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
+/**
+ * Service class responsible for mapping Participant entities to ParticipantDto objects.
+ */
 @Service
 public class ParticipantMapper {
     public ParticipantDto toDto(Participant participant) {

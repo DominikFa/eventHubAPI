@@ -26,11 +26,6 @@ import com.example.eventhubapi.user.exception.UserNotFoundException;
 import com.example.eventhubapi.user.mapper.UserMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-
-import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Service class for handling administrative business logic.
@@ -49,6 +44,19 @@ public class AdminService {
     private final LocationService locationService;
     private final ParticipantRepository participantRepository;
 
+    /**
+     * Constructs an AdminService with the necessary repositories and mappers.
+     * @param userRepository The repository for user data access.
+     * @param eventRepository The repository for event data access.
+     * @param mediaRepository The repository for media data access.
+     * @param roleRepository The repository for role data access.
+     * @param locationRepository The repository for location data access.
+     * @param userMapper The mapper for converting user entities to DTOs.
+     * @param eventMapper The mapper for converting event entities to DTOs.
+     * @param accountStatusRepository The repository for account status data access.
+     * @param locationService The service for location-related business logic.
+     * @param participantRepository The repository for participant data access.
+     */
     public AdminService(UserRepository userRepository,
                         EventRepository eventRepository,
                         MediaRepository mediaRepository,
@@ -71,7 +79,12 @@ public class AdminService {
         this.participantRepository = participantRepository;
     }
 
-
+    /**
+     * Updates the status of a user's account.
+     * @param userId The ID of the user to update.
+     * @param newStatusName The new status name.
+     * @return The updated UserDto.
+     */
     @Transactional
     public UserDto updateUserStatus(Long userId, String newStatusName) {
         User user = findUserById(userId);
@@ -84,6 +97,12 @@ public class AdminService {
         return userMapper.toUserDto(userRepository.save(user));
     }
 
+    /**
+     * Changes the role of a user.
+     * @param userId The ID of the user whose role is to be changed.
+     * @param roleName The name of the new role.
+     * @return The updated UserDto.
+     */
     @Transactional
     public UserDto changeUserRole(Long userId, String roleName) {
         User user = findUserById(userId);
@@ -93,6 +112,10 @@ public class AdminService {
         return userMapper.toUserDto(userRepository.save(user));
     }
 
+    /**
+     * Deletes a user by their ID.
+     * @param userId The ID of the user to delete.
+     */
     @Transactional
     public void deleteUser(Long userId) {
         if (!userRepository.existsById(userId)) {
@@ -101,6 +124,12 @@ public class AdminService {
         userRepository.deleteById(userId);
     }
 
+    /**
+     * Updates any event's details.
+     * @param eventId The ID of the event to update.
+     * @param request The request object containing the new event details.
+     * @return The updated EventDto.
+     */
     @Transactional
     public EventDto updateAnyEvent(Long eventId, AdminEventUpdateRequest request) {
         Event event = eventRepository.findById(eventId)
@@ -128,7 +157,10 @@ public class AdminService {
         return eventMapper.toDto(eventRepository.save(event));
     }
 
-
+    /**
+     * Deletes an event by its ID.
+     * @param eventId The ID of the event to delete.
+     */
     @Transactional
     public void deleteEvent(Long eventId) {
 
@@ -138,6 +170,10 @@ public class AdminService {
         eventRepository.delete(event);
     }
 
+    /**
+     * Deletes a media file by its ID.
+     * @param mediaId The ID of the media file to delete.
+     */
     @Transactional
     public void deleteMedia(Long mediaId) {
         if (!mediaRepository.existsById(mediaId)) {

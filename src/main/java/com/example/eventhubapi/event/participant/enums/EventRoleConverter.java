@@ -3,7 +3,10 @@ package com.example.eventhubapi.event.participant.enums;
 import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Converter;
 
-
+/**
+ * JPA AttributeConverter to convert EventRole enum to and from a String
+ * representation in the database.
+ */
 @Converter(autoApply = true)
 public class EventRoleConverter implements AttributeConverter<EventRole, String> {
 
@@ -12,7 +15,6 @@ public class EventRoleConverter implements AttributeConverter<EventRole, String>
         if (eventRole == null) {
             return null;
         }
-
         return eventRole.getValue();
     }
 
@@ -21,7 +23,6 @@ public class EventRoleConverter implements AttributeConverter<EventRole, String>
         if (value == null) {
             return null;
         }
-
         return EventRole.fromValue(value);
     }
 }

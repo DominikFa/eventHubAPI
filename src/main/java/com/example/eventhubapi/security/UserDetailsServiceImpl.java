@@ -14,13 +14,19 @@ public class UserDetailsServiceImpl implements UserDetailsService {
 
     private final UserRepository userRepository;
 
+    /**
+     * Constructs a UserDetailsServiceImpl with the necessary UserRepository.
+     * @param userRepository The repository for user data access.
+     */
     public UserDetailsServiceImpl(UserRepository userRepository) {
         this.userRepository = userRepository;
     }
 
     /**
      * Locates the user based on the username (in this case, login).
-     * The User entity itself implements UserDetails.
+     * @param username The username identifying the user whose data is required.
+     * @return A UserDetails object containing the user's information.
+     * @throws UsernameNotFoundException if the user could not be found.
      */
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {

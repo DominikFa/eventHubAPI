@@ -30,9 +30,8 @@ public class JwtService {
 
     /**
      * Extracts the username from the JWT token.
-     *
      * @param token The JWT token.
-     * @return The username (email).
+     * @return The username (login).
      */
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);
@@ -40,7 +39,6 @@ public class JwtService {
 
     /**
      * Generates a JWT for a given user.
-     *
      * @param user The user for whom the token is generated.
      * @return The generated JWT string.
      */
@@ -52,8 +50,7 @@ public class JwtService {
     }
 
     /**
-     * Validates a JWT token.
-     *
+     * Validates a JWT token against user details.
      * @param token       The JWT token.
      * @param userDetails The UserDetails object for the user.
      * @return True if the token is valid, false otherwise.
@@ -71,7 +68,14 @@ public class JwtService {
         return extractClaim(token, Claims::getExpiration);
     }
 
-    private <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
+    /**
+     * A generic method to extract a specific claim from the token.
+     * @param token The JWT token.
+     * @param claimsResolver A function to extract the desired claim.
+     * @param <T> The type of the claim.
+     * @return The extracted claim.
+     */
+    public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
         final Claims claims = extractAllClaims(token);
         return claimsResolver.apply(claims);
     }
@@ -93,8 +97,6 @@ public class JwtService {
                 .parseClaimsJws(token)
                 .getBody();
     }
-
-
 
     private Key getSignInKey() {
         byte[] keyBytes = Decoders.BASE64.decode(jwtSecret);

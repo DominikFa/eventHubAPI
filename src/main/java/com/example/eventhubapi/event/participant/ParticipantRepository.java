@@ -8,12 +8,14 @@ import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
 
+/**
+ * Spring Data JPA repository for the Participant entity.
+ */
 @Repository
 public interface ParticipantRepository extends JpaRepository<Participant, Participant.ParticipantId> {
     Page<Participant> findByEventId(Long eventId, Pageable pageable);
 
     Optional<Participant> findByEventIdAndUserId(Long eventId, Long userId);
-
 
     long countByEventIdAndStatus(Long eventId, ParticipantStatus status);
 }

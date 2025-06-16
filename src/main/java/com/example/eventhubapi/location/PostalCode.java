@@ -6,6 +6,9 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import java.util.Set;
 
+/**
+ * Represents a postal code, which can be associated with multiple cities.
+ */
 @Entity
 @Table(name = "postal_code")
 @Getter

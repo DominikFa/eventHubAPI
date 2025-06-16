@@ -6,6 +6,9 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import java.util.Set;
 
+/**
+ * Represents a city, linked to a region and associated with one or more postal codes.
+ */
 @Entity
 @Table(name = "city")
 @Getter

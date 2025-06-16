@@ -1,6 +1,5 @@
 package com.example.eventhubapi.event.mapper;
 
-import com.example.eventhubapi.common.dto.UserSummary;
 import com.example.eventhubapi.event.Event;
 import com.example.eventhubapi.event.dto.EventCreationRequest;
 import com.example.eventhubapi.event.dto.EventDto;
@@ -11,7 +10,9 @@ import com.example.eventhubapi.user.mapper.UserMapper;
 import org.springframework.stereotype.Service;
 import com.example.eventhubapi.location.mapper.LocationMapper;
 
-
+/**
+ * Service class for mapping between Event entities and their DTOs.
+ */
 @Service
 public class EventMapper {
 
@@ -40,10 +41,8 @@ public class EventMapper {
             dto.setOrganizer(userMapper.toUserSummary(event.getOrganizer()));
         }
 
-
         long attendingCount = participantRepository.countByEventIdAndStatus(event.getId(), ParticipantStatus.ATTENDING);
         dto.setParticipantsCount((int) attendingCount);
-
 
         if (event.getLocation() != null) {
             dto.setLocation(locationMapper.toDto(event.getLocation()));
@@ -63,7 +62,6 @@ public class EventMapper {
         event.setPublic(request.getIsPublic());
         event.setMaxParticipants(request.getMaxParticipants());
         event.setOrganizer(organizer);
-
 
         return event;
     }

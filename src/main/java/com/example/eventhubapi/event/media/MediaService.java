@@ -20,6 +20,9 @@ import java.io.IOException;
 import java.time.Instant;
 import java.util.Objects;
 
+/**
+ * Service class for handling media-related business logic.
+ */
 @Service
 public class MediaService {
 
@@ -28,6 +31,14 @@ public class MediaService {
     private final ParticipantRepository participantRepository;
     private final MediaMapper mediaMapper;
 
+    /**
+     * Constructs a MediaService with the necessary dependencies.
+     *
+     * @param mediaRepository       The repository for media data access.
+     * @param eventRepository       The repository for event data access.
+     * @param participantRepository The repository for participant data access.
+     * @param mediaMapper           The mapper for converting between Media entities and DTOs.
+     */
     public MediaService(MediaRepository mediaRepository, EventRepository eventRepository, ParticipantRepository participantRepository, MediaMapper mediaMapper) {
         this.mediaRepository = mediaRepository;
         this.eventRepository = eventRepository;
@@ -44,14 +55,19 @@ public class MediaService {
         }
     }
 
-    // --- Upload Logic ---
-
+    /**
+     * Uploads a gallery image for an event.
+     * @param eventId The ID of the event.
+     * @param file The image file to upload.
+     * @param authentication The authentication object of the current user.
+     * @return A DTO of the created media.
+     * @throws IOException If an I/O error occurs.
+     */
     @Transactional
     public MediaDto uploadGalleryImage(Long eventId, MultipartFile file, Authentication authentication) throws IOException {
         User currentUser = (User) authentication.getPrincipal();
         Event event = findEventById(eventId);
 
-        // CORRECTED LOGIC: Allow upload if user is the organizer OR a participant.
         boolean isOrganizer = event.getOrganizer().getId().equals(currentUser.getId());
         boolean isParticipant = participantRepository.findByEventIdAndUserId(eventId, currentUser.getId()).isPresent();
 
@@ -62,6 +78,14 @@ public class MediaService {
         return storeAndMap(file, event, MediaUsage.GALLERY, currentUser);
     }
 
+    /**
+     * Uploads a logo for an event.
+     * @param eventId The ID of the event.
+     * @param file The logo file to upload.
+     * @param authentication The authentication object of the current user.
+     * @return A DTO of the created media.
+     * @throws IOException If an I/O error occurs.
+     */
     @Transactional
     public MediaDto uploadLogo(Long eventId, MultipartFile file, Authentication authentication) throws IOException {
         User currentUser = (User) authentication.getPrincipal();
@@ -72,6 +96,14 @@ public class MediaService {
         return storeAndMap(file, event, MediaUsage.LOGO, currentUser);
     }
 
+    /**
+     * Uploads a schedule for an event.
+     * @param eventId The ID of the event.
+     * @param file The schedule file to upload.
+     * @param authentication The authentication object of the current user.
+     * @return A DTO of the created media.
+     * @throws IOException If an I/O error occurs.
+     */
     @Transactional
     public MediaDto uploadSchedule(Long eventId, MultipartFile file, Authentication authentication) throws IOException {
         User currentUser = (User) authentication.getPrincipal();
@@ -81,6 +113,14 @@ public class MediaService {
         return storeAndMap(file, event, MediaUsage.SCHEDULE, currentUser);
     }
 
+    /**
+     * Uploads a gallery image for an event as an administrator.
+     * @param eventId The ID of the event.
+     * @param file The image file to upload.
+     * @param authentication The authentication object of the current user.
+     * @return A DTO of the created media.
+     * @throws IOException If an I/O error occurs.
+     */
     @Transactional
     public MediaDto adminUploadGalleryImage(Long eventId, MultipartFile file, Authentication authentication) throws IOException {
         User currentUser = (User) authentication.getPrincipal();
@@ -88,14 +128,23 @@ public class MediaService {
         return storeAndMap(file, event, MediaUsage.GALLERY, currentUser);
     }
 
-    // --- Download Logic ---
-
+    /**
+     * Retrieves a media file by its ID.
+     * @param mediaId The ID of the media file.
+     * @return The Media entity.
+     */
     @Transactional(readOnly = true)
     public Media getMediaFile(Long mediaId) {
         return mediaRepository.findById(mediaId)
                 .orElseThrow(() -> new MediaNotFoundException("Media not found with id: " + mediaId));
     }
 
+    /**
+     * Retrieves a schedule file by its ID, ensuring the user is a participant.
+     * @param mediaId The ID of the schedule file.
+     * @param authentication The authentication object of the current user.
+     * @return The Media entity.
+     */
     @Transactional(readOnly = true)
     public Media getScheduleFile(Long mediaId, Authentication authentication) {
         User currentUser = (User) authentication.getPrincipal();
@@ -109,8 +158,11 @@ public class MediaService {
         return media;
     }
 
-    // --- Deletion Logic ---
-
+    /**
+     * Deletes a user's own gallery media.
+     * @param mediaId The ID of the media file to delete.
+     * @param authentication The authentication object of the current user.
+     */
     @Transactional
     public void deleteOwnGalleryMedia(Long mediaId, Authentication authentication) {
         User currentUser = (User) authentication.getPrincipal();
@@ -122,6 +174,12 @@ public class MediaService {
         mediaRepository.delete(media);
     }
 
+    /**
+     * Allows an organizer to delete any gallery media from their event.
+     * @param eventId The ID of the event.
+     * @param mediaId The ID of the media file to delete.
+     * @param authentication The authentication object of the current user.
+     */
     @Transactional
     public void organizerDeleteGalleryMedia(Long eventId, Long mediaId, Authentication authentication) {
         User currentUser = (User) authentication.getPrincipal();
@@ -135,6 +193,10 @@ public class MediaService {
         mediaRepository.delete(media);
     }
 
+    /**
+     * Deletes a media file by its ID (Admin only).
+     * @param mediaId The ID of the media file to delete.
+     */
     @Transactional
     public void adminDeleteMedia(Long mediaId) {
         if (!mediaRepository.existsById(mediaId)) {
@@ -143,7 +205,6 @@ public class MediaService {
         mediaRepository.deleteById(mediaId);
     }
 
-    // --- Helper Methods ---
 
     private Event findEventById(Long eventId) {
         return eventRepository.findById(eventId)

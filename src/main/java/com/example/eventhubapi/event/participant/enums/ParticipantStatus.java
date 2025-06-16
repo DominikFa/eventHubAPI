@@ -2,6 +2,9 @@ package com.example.eventhubapi.event.participant.enums;
 
 import com.fasterxml.jackson.annotation.JsonValue;
 
+/**
+ * Defines the possible statuses of a participant in an event.
+ */
 public enum ParticipantStatus {
     BANNED("banned"),
     ATTENDING("attending"),

@@ -1,4 +1,3 @@
-// File: eventHubAPI/src/main/java/com/example/eventhubapi/event/EventService.java
 package com.example.eventhubapi.event;
 
 import com.example.eventhubapi.common.dto.EventSummary;
@@ -27,10 +26,12 @@ import com.example.eventhubapi.location.exception.LocationNotFoundException;
 
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import jakarta.persistence.criteria.Predicate;
 
+/**
+ * Service class for event-related business logic.
+ */
 @Service
 public class EventService {
 
@@ -41,6 +42,16 @@ public class EventService {
     private final LocationService locationService;
     private final LocationRepository locationRepository;
 
+    /**
+     * Constructs an EventService with the necessary dependencies.
+     *
+     * @param eventRepository       The repository for event data access.
+     * @param userRepository        The repository for user data access.
+     * @param participantRepository The repository for participant data access.
+     * @param eventMapper           The mapper for converting between Event entities and DTOs.
+     * @param locationService       The service for location-related business logic.
+     * @param locationRepository    The repository for location data access.
+     */
     public EventService(EventRepository eventRepository, UserRepository userRepository, ParticipantRepository participantRepository, EventMapper eventMapper, LocationService locationService, LocationRepository locationRepository) {
         this.eventRepository = eventRepository;
         this.userRepository = userRepository;
@@ -59,6 +70,13 @@ public class EventService {
         }
     }
 
+    /**
+     * Creates a new event and sets the organizer as the first participant.
+     *
+     * @param request        The request object containing event creation data.
+     * @param organizerLogin The login of the user creating the event.
+     * @return An EventDto representing the newly created event.
+     */
     @Transactional
     public EventDto createEvent(EventCreationRequest request, String organizerLogin) {
         User organizer = userRepository.findByLogin(organizerLogin)
@@ -90,6 +108,15 @@ public class EventService {
         return eventMapper.toDto(savedEvent);
     }
 
+    /**
+     * Retrieves a paginated list of public events, optionally filtered by name and date range.
+     *
+     * @param pageable  Pagination information.
+     * @param name      Optional filter for event name (case-insensitive, contains).
+     * @param startDate Optional filter for events starting on or after this date.
+     * @param endDate   Optional filter for events ending on or before this date.
+     * @return A Page of EventSummary objects.
+     */
     @Transactional(readOnly = true)
     public Page<EventSummary> getPublicEvents(Pageable pageable, String name, Instant startDate, Instant endDate) {
         Specification<Event> spec = (root, query, criteriaBuilder) -> {
@@ -114,11 +141,23 @@ public class EventService {
                 .map(event -> new EventSummary(event.getId(), event.getName(), event.getStartDate(), event.getEndDate()));
     }
 
+    /**
+     * Retrieves a paginated list of all events as summaries. (Admin only)
+     *
+     * @param pageable Pagination information.
+     * @return A Page of EventSummary objects.
+     */
     @Transactional(readOnly = true)
     public Page<EventSummary> getAllEvents(Pageable pageable) {
         return eventRepository.findAllSummary(pageable);
     }
 
+    /**
+     * Retrieves a single event by its ID.
+     *
+     * @param eventId The ID of the event to retrieve.
+     * @return An EventDto representing the event.
+     */
     @Transactional(readOnly = true)
     public EventDto getEventById(Long eventId) {
         Event event = eventRepository.findById(eventId)
@@ -126,6 +165,14 @@ public class EventService {
         return eventMapper.toDto(event);
     }
 
+    /**
+     * Updates an existing event.
+     *
+     * @param eventId    The ID of the event to update.
+     * @param request    The request object containing the updated event data.
+     * @param userLogin  The login of the user performing the update.
+     * @return An EventDto representing the updated event.
+     */
     @Transactional
     public EventDto updateEvent(Long eventId, EventCreationRequest request, String userLogin) {
         User user = userRepository.findByLogin(userLogin)
@@ -146,6 +193,12 @@ public class EventService {
         return eventMapper.toDto(savedEvent);
     }
 
+    /**
+     * Deletes an event.
+     *
+     * @param eventId   The ID of the event to delete.
+     * @param userLogin The login of the user performing the deletion.
+     */
     @Transactional
     public void deleteEvent(Long eventId, String userLogin) {
         User user = userRepository.findByLogin(userLogin)
@@ -159,6 +212,13 @@ public class EventService {
         eventRepository.delete(event);
     }
 
+    /**
+     * Retrieves a paginated list of events that the current authenticated user is participating in.
+     *
+     * @param userLogin The login of the current user.
+     * @param pageable Pagination information.
+     * @return A Page of EventDto objects for participated events.
+     */
     @Transactional(readOnly = true)
     public Page<EventDto> getMyParticipatedEvents(String userLogin, Pageable pageable) {
         User user = userRepository.findByLogin(userLogin)
@@ -167,6 +227,13 @@ public class EventService {
                 .map(eventMapper::toDto);
     }
 
+    /**
+     * Retrieves a paginated list of events that the current authenticated user has created.
+     *
+     * @param userLogin The login of the current user.
+     * @param pageable Pagination information.
+     * @return A Page of EventDto objects for created events.
+     */
     @Transactional(readOnly = true)
     public Page<EventDto> getMyCreatedEvents(String userLogin, Pageable pageable) {
         User user = userRepository.findByLogin(userLogin)

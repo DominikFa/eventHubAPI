@@ -7,6 +7,9 @@ import lombok.Setter;
 
 import java.time.Instant;
 
+/**
+ * DTO for exposing invitation data to the client.
+ */
 @Getter
 @Setter
 public class InvitationDto {

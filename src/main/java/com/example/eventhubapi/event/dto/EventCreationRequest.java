@@ -11,6 +11,10 @@ import lombok.Setter;
 
 import java.time.Instant;
 
+/**
+ * DTO for capturing the data needed to create or update an event.
+ * Includes validation for exclusive location fields.
+ */
 @Getter
 @Setter
 @ExclusiveFields(value = {"locationId", "location"}, message = "Provide either a locationId or a new location object, but not both.")
@@ -25,11 +29,7 @@ public class EventCreationRequest {
     @NotNull
     private Boolean isPublic;
     private Long maxParticipants;
-
-    // Option 1: Link to an existing location
     private Long locationId;
-
-    // Option 2: Create a new location
     @Valid
     private LocationCreationRequest location;
 }

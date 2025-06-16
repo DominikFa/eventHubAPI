@@ -2,6 +2,9 @@ package com.example.eventhubapi.event.participant.enums;
 
 import com.fasterxml.jackson.annotation.JsonValue;
 
+/**
+ * Defines the roles a user can have within an event (e.g., ORGANIZER, PARTICIPANT).
+ */
 public enum EventRole {
     ORGANIZER("organizer"),
     MODERATOR("moderator"),
@@ -12,7 +15,6 @@ public enum EventRole {
     EventRole(String value) {
         this.value = value;
     }
-
 
     @JsonValue
     public String getValue() {

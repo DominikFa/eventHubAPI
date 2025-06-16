@@ -12,6 +12,10 @@ import java.time.Instant;
 import java.util.HashSet;
 import java.util.Set;
 
+/**
+ * The core entity representing an event. It holds details such as name,
+ * description, dates, location, and its participants.
+ */
 @Entity
 @Table(name = "event")
 @Getter

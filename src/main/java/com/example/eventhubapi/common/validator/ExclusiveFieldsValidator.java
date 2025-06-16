@@ -7,6 +7,10 @@ import org.springframework.beans.BeanWrapperImpl;
 import java.util.Arrays;
 import java.util.Objects;
 
+/**
+ * Validator logic for the @ExclusiveFields annotation. Checks that no more than
+ * one of the specified fields on an object is non-null.
+ */
 public class ExclusiveFieldsValidator implements ConstraintValidator<ExclusiveFields, Object> {
 
     private String[] fieldNames;
@@ -22,12 +26,10 @@ public class ExclusiveFieldsValidator implements ConstraintValidator<ExclusiveFi
             return true;
         }
 
-
         long nonNullFieldsCount = Arrays.stream(fieldNames)
                 .map(fieldName -> new BeanWrapperImpl(value).getPropertyValue(fieldName))
                 .filter(Objects::nonNull)
                 .count();
-
 
         return nonNullFieldsCount <= 1;
     }

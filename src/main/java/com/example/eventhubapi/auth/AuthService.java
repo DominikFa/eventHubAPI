@@ -31,6 +31,16 @@ public class AuthService {
     private final UserMapper userMapper;
     private final AccountStatusRepository accountStatusRepository;
 
+    /**
+     * Constructs an AuthService with the necessary components.
+     * @param userRepository The repository for user data access.
+     * @param roleRepository The repository for role data access.
+     * @param passwordEncoder The encoder for user passwords.
+     * @param jwtService The service for JWT operations.
+     * @param authenticationManager The manager for handling authentication.
+     * @param userMapper The mapper for converting user entities to DTOs.
+     * @param accountStatusRepository The repository for account status data access.
+     */
     public AuthService(UserRepository userRepository,
                        RoleRepository roleRepository,
                        PasswordEncoder passwordEncoder,
@@ -49,9 +59,8 @@ public class AuthService {
 
     /**
      * Registers a new user in the system.
-     *
      * @param request DTO containing registration details.
-     * @return The newly created User entity.
+     * @return The DTO of the newly created user.
      */
     @Transactional
     public UserDto register(RegistrationRequest request) {
@@ -64,17 +73,14 @@ public class AuthService {
         newUser.setPassword(passwordEncoder.encode(request.getPassword()));
         newUser.setCreatedAt(Instant.now());
 
-        // Assign the default USER role
         Role userRole = roleRepository.findByName("user")
                 .orElseThrow(() -> new IllegalStateException("Default role not found."));
         newUser.setRole(userRole);
 
-        // Set default status to ACTIVE
         AccountStatus activeStatus = accountStatusRepository.findByStatusName("active")
                 .orElseThrow(() -> new IllegalStateException("Default account status 'active' not found."));
         newUser.setStatus(activeStatus);
 
-        // Create and set the profile
         Profile profile = new Profile();
         profile.setName(request.getName());
         profile.setAccount(newUser);
@@ -87,7 +93,6 @@ public class AuthService {
 
     /**
      * Authenticates a user and returns a JWT.
-     *
      * @param request DTO containing login credentials.
      * @return An AuthResponse containing the JWT and user details.
      */

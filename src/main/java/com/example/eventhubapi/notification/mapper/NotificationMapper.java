@@ -10,6 +10,9 @@ import org.springframework.stereotype.Service;
 
 import java.util.Optional;
 
+/**
+ * A service class responsible for mapping notification-related entities to DTOs.
+ */
 @Service
 public class NotificationMapper {
 
@@ -34,7 +37,6 @@ public class NotificationMapper {
 
         if (notification.getEventId() != null) {
             dto.setEventId(notification.getEventId());
-            // Fetch event name to enrich the DTO
             Optional<Event> eventOpt = eventRepository.findById(notification.getEventId());
             eventOpt.ifPresent(event -> dto.setEventName(event.getName()));
         }
@@ -44,7 +46,7 @@ public class NotificationMapper {
             dto.setRecipient(new UserSummary(
                     accountNotification.getRecipient().getId(),
                     recipientName,
-                    null // Profile image URL is not available as a string
+                    null
             ));
         }
 

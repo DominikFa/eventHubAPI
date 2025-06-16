@@ -5,6 +5,9 @@ import com.example.eventhubapi.location.dto.LocationCreationRequest;
 import com.example.eventhubapi.location.dto.LocationDto;
 import org.springframework.stereotype.Service;
 
+/**
+ * Service class for mapping between Location entities and their corresponding DTOs.
+ */
 @Service
 public class LocationMapper {
 
@@ -54,7 +57,7 @@ public class LocationMapper {
             mapLocation.setLatitude(request.getLatitude());
             mapLocation.setLongitude(request.getLongitude());
 
-            mapLocation.setLocation(location); // ✨ FIX
+            mapLocation.setLocation(location);
 
             location.setMapLocation(mapLocation);
         }

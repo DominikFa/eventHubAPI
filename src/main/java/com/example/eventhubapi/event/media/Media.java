@@ -11,6 +11,10 @@ import lombok.Setter;
 
 import java.time.Instant;
 
+/**
+ * Represents a media file associated with an event, such as a gallery image,
+ * a schedule document, or a logo.
+ */
 @Entity
 @Table(name = "media")
 @Getter
@@ -23,14 +27,11 @@ public class Media {
     @Column(name = "media_id")
     private Long id;
 
-
     @Column(name = "media_file", nullable = false, columnDefinition = "bytea")
     private byte[] mediaFile;
 
-
     @Column(name = "media_type", nullable = false)
     private MediaType mediaType;
-
 
     @Column(nullable = false)
     private MediaUsage usage;

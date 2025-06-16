@@ -2,6 +2,9 @@ package com.example.eventhubapi.event.media.enums;
 
 import com.fasterxml.jackson.annotation.JsonValue;
 
+/**
+ * Defines the supported media types (MIME types) for file uploads.
+ */
 public enum MediaType {
     IMAGE_JPEG("image/jpeg"),
     IMAGE_PNG("image/png"),

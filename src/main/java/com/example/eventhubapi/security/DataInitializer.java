@@ -5,12 +5,20 @@ import com.example.eventhubapi.user.AccountStatusRepository;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
+/**
+ * Initializes the database with default roles and account statuses on application startup.
+ */
 @Component
 public class DataInitializer implements CommandLineRunner {
 
     private final RoleRepository roleRepository;
     private final AccountStatusRepository accountStatusRepository;
 
+    /**
+     * Constructs a DataInitializer with necessary repositories.
+     * @param roleRepository The repository for Role entities.
+     * @param accountStatusRepository The repository for AccountStatus entities.
+     */
     public DataInitializer(RoleRepository roleRepository, AccountStatusRepository accountStatusRepository) {
         this.roleRepository = roleRepository;
         this.accountStatusRepository = accountStatusRepository;

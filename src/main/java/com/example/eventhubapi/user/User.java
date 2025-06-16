@@ -13,6 +13,10 @@ import java.time.Instant;
 import java.util.Collection;
 import java.util.Collections;
 
+/**
+ * Represents a user account in the system. Implements UserDetails to integrate
+ * with Spring Security for authentication and authorization.
+ */
 @Entity
 @Table(name = "account")
 @SecondaryTable(name = "account_auth", pkJoinColumns = @PrimaryKeyJoinColumn(name = "account_id"))
@@ -35,7 +39,6 @@ public class User implements UserDetails {
     @Column(name = "created_at", updatable = false, nullable = false)
     private Instant createdAt;
 
-    // MODIFIED: Added cascade = CascadeType.PERSIST and changed FetchType to LAZY
     @OneToOne(mappedBy = "account", cascade = CascadeType.PERSIST, fetch = FetchType.LAZY)
     private Profile profile;
 

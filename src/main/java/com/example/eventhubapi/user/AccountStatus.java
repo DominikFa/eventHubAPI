@@ -5,6 +5,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/**
+ * Represents the status of a user's account (e.g., active, banned, deactivated).
+ */
 @Entity
 @Table(name = "account_status")
 @Getter

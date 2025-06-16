@@ -5,6 +5,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/**
+ * Represents a geographical region (e.g., a state or province) within a country.
+ */
 @Entity
 @Table(name = "region")
 @Getter

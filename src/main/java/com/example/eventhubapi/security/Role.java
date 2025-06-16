@@ -5,6 +5,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/**
+ * Represents a user role within the application (e.g., 'user', 'organizer', 'admin').
+ */
 @Entity
 @Table(name = "account_role")
 @Getter

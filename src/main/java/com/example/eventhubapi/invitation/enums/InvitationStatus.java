@@ -2,6 +2,9 @@ package com.example.eventhubapi.invitation.enums;
 
 import com.fasterxml.jackson.annotation.JsonValue;
 
+/**
+ * Defines the possible statuses for an event invitation.
+ */
 public enum InvitationStatus {
     SENT("sent"),
     ACCEPTED("accepted"),

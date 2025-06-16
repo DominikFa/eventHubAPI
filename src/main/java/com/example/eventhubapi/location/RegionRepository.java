@@ -5,6 +5,9 @@ import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
 
+/**
+ * Spring Data JPA repository for the Region entity.
+ */
 @Repository
 public interface RegionRepository extends JpaRepository<Region, Long> {
     Optional<Region> findByCodeAndCountry(String code, Country country);

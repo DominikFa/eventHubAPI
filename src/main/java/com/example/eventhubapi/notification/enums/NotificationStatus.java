@@ -2,6 +2,10 @@ package com.example.eventhubapi.notification.enums;
 
 import com.fasterxml.jackson.annotation.JsonValue;
 
+/**
+ * Defines the possible statuses for a user's notification
+ * (e.g., CREATED, READ).
+ */
 public enum NotificationStatus {
     CREATED("created"),
     READ("read"),

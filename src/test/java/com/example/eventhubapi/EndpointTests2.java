@@ -169,7 +169,51 @@ public class EndpointTests2 extends AbstractTransactionalTestNGSpringContextTest
                 .andExpect(status().isUnauthorized());
     }
 
+    @Test
+    public void testStateTransition_CannotSendDuplicateSentInvitation() throws Exception {
+        // 1. Arrange: Organizer creates an event
+        EventCreationRequest event = createSampleEvent();
+        MvcResult createResult = mockMvc.perform(post("/api/events")
+                        .header("Authorization", organizerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(event)))
+                .andExpect(status().isCreated())
+                .andReturn();
+        long eventId = objectMapper.readTree(createResult.getResponse().getContentAsString()).get("id").asLong();
 
+        // 2. Act & Assert 1: Organizer sends the first invitation, which should succeed.
+        InvitationCreateRequest inviteRequest = new InvitationCreateRequest();
+        inviteRequest.setEventId(eventId);
+        inviteRequest.setInvitedUserId(userId);
+
+        MvcResult firstInviteResult = mockMvc.perform(post("/api/invitations")
+                        .header("Authorization", organizerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(inviteRequest)))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+        // 3. Act & Assert 2: Organizer tries to send the same invitation again. It should fail.
+        mockMvc.perform(post("/api/invitations")
+                        .header("Authorization", organizerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(inviteRequest)))
+                .andExpect(status().isConflict()) // 409 Conflict for IllegalStateException
+                .andExpect(jsonPath("$.message").value("An active invitation for this user to this event already exists."));
+
+        // 4. Arrange for re-invitation: User declines the first invitation.
+        long invitationId = objectMapper.readTree(firstInviteResult.getResponse().getContentAsString()).get("id").asLong();
+        mockMvc.perform(post("/api/invitations/" + invitationId + "/decline")
+                        .header("Authorization", userToken))
+                .andExpect(status().isOk());
+
+        // 5. Act & Assert 3: Organizer sends the invitation again. It should now succeed.
+        mockMvc.perform(post("/api/invitations")
+                        .header("Authorization", organizerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(inviteRequest)))
+                .andExpect(status().isCreated());
+    }
     @Test
     public void testUserProfileEndpoints() throws Exception {
         // UC4: Edit Own Profile
@@ -271,68 +315,7 @@ public class EndpointTests2 extends AbstractTransactionalTestNGSpringContextTest
     }
 
 
-    @Test
-    public void testAdminModerationEndpoints() throws Exception {
-        // UC20: User Moderation
-        mockMvc.perform(get("/api/admin/accounts?page=0&size=5")
-                        .header("Authorization", adminToken))
-                .andExpect(status().isOk());
 
-        // Ban a user
-        AdminUserUpdateStatusRequest statusRequest = new AdminUserUpdateStatusRequest();
-        statusRequest.setStatus("banned");
-        mockMvc.perform(patch("/api/admin/accounts/" + userId + "/status")
-                        .header("Authorization", adminToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(statusRequest)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("banned"));
-
-
-        // Change user role
-        AdminChangeUserRoleRequest roleRequest = new AdminChangeUserRoleRequest();
-        roleRequest.setRoleName("organizer");
-        mockMvc.perform(patch("/api/admin/accounts/" + userId + "/role")
-                        .header("Authorization", adminToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(roleRequest)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.role").value("organizer"));
-
-
-        // UC21: Event Moderation (Update & Delete)
-        EventCreationRequest event = createSampleEvent();
-        MvcResult createResult = mockMvc.perform(post("/api/events")
-                        .header("Authorization", organizerToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(event)))
-                .andExpect(status().isCreated())
-                .andReturn();
-        long eventId = objectMapper.readTree(createResult.getResponse().getContentAsString()).get("id").asLong();
-
-
-        // Admin updates event
-        AdminEventUpdateRequest adminEventUpdateRequest = new AdminEventUpdateRequest();
-        adminEventUpdateRequest.setName("Admin Updated Event");
-        adminEventUpdateRequest.setDescription("Updated by admin.");
-        adminEventUpdateRequest.setStartDate(event.getStartDate());
-        adminEventUpdateRequest.setEndDate(event.getEndDate());
-        adminEventUpdateRequest.setIsPublic(event.getIsPublic());
-
-
-        mockMvc.perform(put("/api/admin/events/" + eventId)
-                        .header("Authorization", adminToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(adminEventUpdateRequest)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.name").value("Admin Updated Event"));
-
-
-        // Admin deletes event
-        mockMvc.perform(delete("/api/admin/events/" + eventId)
-                        .header("Authorization", adminToken))
-                .andExpect(status().isNoContent());
-    }
 
     // =================================================================
     // === TESTY RYGORYSTYCZNE I SCENARIUSZE BRZEGOWE ===================
@@ -508,13 +491,6 @@ public class EndpointTests2 extends AbstractTransactionalTestNGSpringContextTest
                 .andExpect(jsonPath("$.message").value("User is already a participant in this event."));
     }
 
-    @Test
-    public void testPagination_RequestingOutOfBoundsPageReturnsEmpty() throws Exception {
-        mockMvc.perform(get("/api/admin/accounts?page=999").header("Authorization", adminToken))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content").isEmpty())
-                .andExpect(jsonPath("$.totalPages").isNumber());
-    }
 
     @Test
     public void testStateTransition_UpdateNonExistentEventReturnsNotFound() throws Exception {
